@@ -10,6 +10,13 @@ jobs:
     runs-on: self-hosted
 
     steps:
+      - name: Atualizar repositorio da VPS
+        shell: powershell
+        run: |
+          cd C:\DRSOSystem\DRSOSystem
+          git fetch origin main
+          git reset --hard origin/main
+
       - name: Executar deploy na VPS
         shell: powershell
         run: |
