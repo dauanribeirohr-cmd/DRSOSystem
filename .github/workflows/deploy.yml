@@ -8,12 +8,26 @@ on:
 jobs:
   deploy:
     runs-on: self-hosted
+    env:
+      DRSO_DATA_DIR: C:\DRSOStorage
 
     steps:
+      - name: Validar separacao entre codigo e dados
+        shell: powershell
+        run: |
+          $app = [System.IO.Path]::GetFullPath("C:\DRSOSystem\DRSOSystem").TrimEnd('\')
+          $data = [System.IO.Path]::GetFullPath($env:DRSO_DATA_DIR).TrimEnd('\')
+          if ($data -eq $app -or $data.StartsWith("$app\", [System.StringComparison]::OrdinalIgnoreCase)) {
+            throw "DRSO_DATA_DIR nao pode ficar dentro do repositorio."
+          }
+          @("data", "uploads", "gallery", "backups", "logs") | ForEach-Object {
+            New-Item -ItemType Directory -Path (Join-Path $data $_) -Force | Out-Null
+          }
+
       - name: Atualizar repositorio da VPS
         shell: powershell
         run: |
-          cd C:\DRSOSystem\DRSOSystem
+          Set-Location -LiteralPath C:\DRSOSystem\DRSOSystem
           git fetch origin main
           git reset --hard origin/main
 

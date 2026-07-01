@@ -4,7 +4,8 @@ $appRoot = if ((Split-Path -Leaf $scriptDir) -ieq "scripts") { Split-Path -Paren
 Set-Location -Path $appRoot
 
 $port = if ($env:PORT) { [int]$env:PORT } else { 3334 }
-$pidFile = Join-Path $appRoot "logs\drsosystem-server.pid"
+$dataRoot = if ($env:DRSO_DATA_DIR) { [System.IO.Path]::GetFullPath($env:DRSO_DATA_DIR) } else { "C:\DRSOStorage" }
+$pidFile = Join-Path $dataRoot "logs\drsosystem-server.pid"
 
 Write-Host ""
 Write-Host "Encerrando DRSOSystem..."

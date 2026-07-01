@@ -1,6 +1,8 @@
 const { DatabaseSync } = require("node:sqlite");
 
-const db = new DatabaseSync("data/drsosystem.sqlite");
+(async () => {
+const { dbPath } = await import("../server/storage-paths.mjs");
+const db = new DatabaseSync(dbPath);
 const table = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'financial_transactions'").get();
 
 if (!table?.sql) {
@@ -60,3 +62,7 @@ db.exec(`
 `);
 
 console.log("Tabela financial_transactions atualizada para aceitar transferencia.");
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

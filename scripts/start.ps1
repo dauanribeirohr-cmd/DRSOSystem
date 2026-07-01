@@ -3,6 +3,13 @@ $scriptDir = $PSScriptRoot
 $appRoot = if ((Split-Path -Leaf $scriptDir) -ieq "scripts") { Split-Path -Parent $scriptDir } else { $scriptDir }
 Set-Location -Path $appRoot
 
+$dataRoot = if ($env:DRSO_DATA_DIR) { [System.IO.Path]::GetFullPath($env:DRSO_DATA_DIR) } else { "C:\DRSOStorage" }
+$appRootFull = [System.IO.Path]::GetFullPath($appRoot).TrimEnd('\')
+if ($dataRoot.TrimEnd('\').StartsWith("$appRootFull\", [System.StringComparison]::OrdinalIgnoreCase) -or $dataRoot.TrimEnd('\') -ieq $appRootFull) {
+  throw "DRSO_DATA_DIR deve ficar fora da pasta do projeto. Dados: $dataRoot"
+}
+$env:DRSO_DATA_DIR = $dataRoot
+
 $port = if ($env:PORT) { [int]$env:PORT } else { 3333 }
 $requestedPort = $port
 $openBrowser = $env:DRSO_NO_BROWSER -ne "1"
@@ -26,7 +33,7 @@ if (-not $nodeExe) {
   exit 1
 }
 
-$logDir = Join-Path $appRoot "logs"
+$logDir = Join-Path $dataRoot "logs"
 if (-not (Test-Path $logDir)) {
   New-Item -ItemType Directory -Path $logDir | Out-Null
 }
@@ -110,7 +117,8 @@ Write-Host "Iniciando DRSOSystem em $displayUrl ..."
 if ($mobileUrl) {
   Write-Host "No celular, use: $mobileUrl"
 }
-Write-Host "Logs: logs\server.log e logs\server.err.log"
+Write-Host "Dados permanentes: $dataRoot"
+Write-Host "Logs: $logOut e $logErr"
 
 function Test-PortOpen {
   param(

@@ -10,15 +10,31 @@ data/
 backups/
 runtime/
 logs/
+uploads/
+storage/
+gallery/
+Galeria/
 
 # Banco SQLite
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+*.sqlite-journal
 
 # Arquivos pessoais
 *.mp3
 *.drso
+*.m4a
+*.aac
+*.wav
+*.ogg
+*.oga
+*.flac
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
 
 # Temporários / sistema
 *.log

@@ -1,6 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
+import { dbPath } from "../server/storage-paths.mjs";
 
-const db = new DatabaseSync("data/drsosystem.sqlite");
+const db = new DatabaseSync(dbPath);
 const user = db.prepare("SELECT id FROM users WHERE lower(username) = 'drs' LIMIT 1").get();
 if (!user) throw new Error("Usuario drs nao encontrado.");
 

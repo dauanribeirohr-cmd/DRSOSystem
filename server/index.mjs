@@ -7,22 +7,28 @@ import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import { createCipheriv, createDecipheriv, createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { deflateRawSync, gzipSync, inflateRawSync } from "node:zlib";
+import {
+  projectRoot as rootDir,
+  dataRootDir,
+  dataDir,
+  galleryDir,
+  backupsDir as backupDir,
+  documentUploadsDir,
+  musicUploadsDir,
+  dbPath,
+  persistentEnvPath,
+  requiredStorageDirs,
+  legacyDbCandidates
+} from "./storage-paths.mjs";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.resolve(__dirname, "..");
 const publicDir = path.join(rootDir, "public");
-const dataDir = path.join(rootDir, "data");
-const backupDir = path.join(rootDir, "backups");
-const documentUploadsDir = path.join(dataDir, "documents");
-const musicUploadsDir = path.join(dataDir, "music");
-const dbPath = path.join(dataDir, "drsosystem.sqlite");
 const drsLoginMarker = path.join(dataDir, ".login-drs-20260614");
 const documentKeyPath = path.join(dataDir, ".documents-key");
 const passwordKeyPath = path.join(dataDir, ".passwords-key");
 const steamApiKeyPath = path.join(dataDir, ".steam-api-key");
 const openAiSettingsPath = path.join(dataDir, ".openai-settings");
 const runtimeProcess = globalThis.process;
-const localEnvPath = path.join(rootDir, ".env");
+const localEnvPath = persistentEnvPath;
 const localEnv = {};
 try {
   const envText = await readFile(localEnvPath, "utf8");
@@ -35,11 +41,7 @@ try {
 } catch {
   // Arquivo .env e opcional; variaveis do sistema continuam funcionando.
 }
-// Na instalacao da VPS, o aplicativo e o armazenamento sao pastas irmas dentro
-// de C:\DRSOSystem. No pendrive, continuam sendo pastas irmas na raiz da unidade.
-const portableStorageRoot = path.join(path.dirname(rootDir), "DRSOStorage");
-const defaultGalleryRootDir = path.join(portableStorageRoot, "Galeria");
-const galleryRootDir = path.resolve(String(runtimeProcess?.env?.DRSO_GALLERY_DIR || localEnv.DRSO_GALLERY_DIR || defaultGalleryRootDir));
+const galleryRootDir = galleryDir;
 const port = Number(runtimeProcess?.env?.PORT || 3333);
 const sessions = new Map();
 const databaseTokens = new Map();
@@ -52,10 +54,11 @@ const APP_TIME_ZONE = "America/Sao_Paulo";
 const roundMoney = (value) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
 const formatMoneyBR = (value) => roundMoney(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-await mkdir(dataDir, { recursive: true });
-await mkdir(backupDir, { recursive: true });
-await mkdir(documentUploadsDir, { recursive: true });
-await mkdir(musicUploadsDir, { recursive: true });
+await Promise.all(requiredStorageDirs.map((directory) => mkdir(directory, { recursive: true })));
+const pendingLegacyDb = !existsSync(dbPath) && legacyDbCandidates.find((candidate) => existsSync(candidate));
+if (pendingLegacyDb) {
+  throw new Error(`Banco legado encontrado em ${pendingLegacyDb}. Execute scripts\\migrate-storage.mjs antes de iniciar para evitar abrir um banco vazio.`);
+}
 if (!existsSync(documentKeyPath)) await writeFile(documentKeyPath, randomBytes(32).toString("hex"));
 if (!existsSync(passwordKeyPath)) await writeFile(passwordKeyPath, randomBytes(32).toString("hex"));
 const documentEncryptionKey = Buffer.from((await readFile(documentKeyPath, "utf8")).trim(), "hex");
@@ -6411,7 +6414,7 @@ function resolveGalleryStoredPath(filePath = "") {
   const parts = raw.split(/[\\/]+/);
   const storageIndex = parts.findIndex((part, index) => (
     part.toLowerCase() === "drsostorage"
-    && parts[index + 1]?.toLowerCase() === "galeria"
+    && ["galeria", "gallery"].includes(parts[index + 1]?.toLowerCase())
   ));
   if (storageIndex >= 0) {
     return assertGalleryPath(path.join(galleryRootDir, ...parts.slice(storageIndex + 2)));
@@ -7197,7 +7200,7 @@ async function saveMusicAudio(payload) {
     audio_file_name: storedName,
     audio_mime_type: musicAudioMime(originalName, mimeType),
     audio_url: musicAudioUrl(storedName),
-    storage_label: "Salvo no pendrive em data/music"
+    storage_label: "Salvo no armazenamento permanente"
   };
 }
 
@@ -9333,7 +9336,7 @@ async function backup(userId = null) {
   await mkdir(backupFolder, { recursive: true });
   const fileName = `drsosystem-backup-completo-${stamp}.zip`;
   const target = path.join(backupFolder, fileName);
-  const entries = await collectBackupEntries(rootDir);
+  const entries = await collectBackupEntries(dataRootDir);
   await writeFile(target, createZip(entries));
   const result = run("INSERT INTO backups (file_name, file_path) VALUES (?, ?)", [fileName, target]);
   if (userId) {
@@ -11926,8 +11929,9 @@ async function api(req, res, pathname, query) {
   const musicAudioMatch = pathname.match(/^\/api\/music\/audio\/([^/]+)$/);
   if (musicAudioMatch && req.method === "GET") {
     const fileName = path.basename(decodeURIComponent(musicAudioMatch[1]));
-    const filePath = path.join(musicUploadsDir, fileName);
-    if (!filePath.startsWith(musicUploadsDir) || !existsSync(filePath)) return json(res, 404, { error: "Audio nao encontrado." });
+    const filePath = path.resolve(musicUploadsDir, fileName);
+    const relativePath = path.relative(musicUploadsDir, filePath);
+    if (relativePath === ".." || relativePath.startsWith(`..${path.sep}`) || path.isAbsolute(relativePath) || !existsSync(filePath)) return json(res, 404, { error: "Audio nao encontrado." });
     const content = await readFile(filePath);
     res.writeHead(200, {
       "Content-Type": musicAudioMime(fileName),
@@ -12404,6 +12408,7 @@ if (runtimeProcess?.argv?.[1] === fileURLToPath(import.meta.url)) {
   server.listen(port, () => {
     console.log(`DRSOSystem rodando em http://localhost:${port}`);
     console.log(`Banco local: ${dbPath}`);
+    console.log(`[Storage] Caminho permanente: ${dataRootDir}`);
     console.log(`[Galeria] Caminho base configurado: ${galleryRootDir}`);
   });
 }

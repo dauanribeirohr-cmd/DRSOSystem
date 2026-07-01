@@ -7788,13 +7788,13 @@ async function renderSteam() {
     content = el("div", { class: "stack" }, [
       el("section", { class: "card" }, [el("div", { class: "card-body stack" }, [
         el("h2", {}, ["Configuracoes de Sincronizacao"]),
-        el("p", { class: "muted" }, ["Configure a STEAM_API_KEY no Windows ou crie um arquivo .env na raiz do DRSOSystem. A chave nunca e enviada ao frontend."]),
+        el("p", { class: "muted" }, ["Configure a STEAM_API_KEY no Windows ou no arquivo C:\\DRSOStorage\\data\\.env. A chave nunca e enviada ao frontend."]),
         el("div", { class: "steam-manual-sync-note" }, [
           el("strong", {}, ["Nada automatico"]),
           el("span", {}, ["Contas, jogos, amigos e conquistas so atualizam quando voce mandar. Inventario tem sincronizacao separada por conta."])
         ]),
         el("div", { class: "steam-config-box" }, [
-          el("strong", {}, ["Arquivo .env na raiz do projeto:"]),
+          el("strong", {}, ["Arquivo de configuracao permanente:"]),
           el("code", {}, ["STEAM_API_KEY=sua_chave_aqui"])
         ]),
         dataSteamApiStatus(overview.apiKeyConfigured),
@@ -9566,7 +9566,7 @@ function galleryTopActions(data) {
     ]),
     el("div", { class: "gallery-root-path" }, [
       el("span", {}, ["Pasta"]),
-      el("strong", {}, [data.summary?.root || "D:\\DRSOStorage\\Galeria"])
+      el("strong", {}, [data.summary?.root || "C:\\DRSOStorage\\gallery"])
     ])
   ])]);
 }

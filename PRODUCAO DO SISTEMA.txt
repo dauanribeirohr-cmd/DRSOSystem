@@ -1,1 +1,8 @@
-http://217.216.53.250
+URL: http://217.216.53.250
+Codigo: C:\DRSOSystem\DRSOSystem
+Dados permanentes: C:\DRSOStorage
+Banco: C:\DRSOStorage\data\drsosystem.sqlite
+Uploads: C:\DRSOStorage\uploads
+Galeria: C:\DRSOStorage\gallery
+Backups: C:\DRSOStorage\backups
+Logs: C:\DRSOStorage\logs
