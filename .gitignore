@@ -1,0 +1,30 @@
+# Dependências
+node_modules/
+
+# Ambiente
+.env
+.env.*
+
+# Dados privados
+data/
+backups/
+runtime/
+logs/
+
+# Banco SQLite
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Arquivos pessoais
+*.mp3
+*.drso
+
+# Temporários / sistema
+*.log
+*.pid
+*.tmp
+*.zip
+desktop.ini
+server.log
+server.err.log

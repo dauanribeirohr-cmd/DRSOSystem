@@ -1,0 +1,13 @@
+{
+  "name": "drsosystem",
+  "version": "0.1.0",
+  "description": "Sistema operacional pessoal portátil para organização da vida, finanças, projetos, documentos, apostas e conhecimento.",
+  "type": "module",
+  "scripts": {
+    "start": "node --no-warnings server/index.mjs",
+    "dev": "node --no-warnings server/index.mjs"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}

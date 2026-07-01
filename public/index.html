@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DRSOSystem</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="icon" type="image/png" href="/assets/drsosystem-logo.png?v=20260603_46" />
+    <script>
+      (function () {
+        try {
+          var savedTheme = localStorage.getItem("drso_theme") || localStorage.getItem("drso_login_theme");
+          var systemLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+          var theme = savedTheme || (systemLight ? "light" : "dark");
+          document.documentElement.dataset.theme = theme === "light" ? "light" : "dark";
+          document.documentElement.style.colorScheme = theme === "light" ? "light" : "dark";
+        } catch (error) {
+          document.documentElement.dataset.theme = "dark";
+          document.documentElement.style.colorScheme = "dark";
+        }
+      }());
+    </script>
+  <link rel="stylesheet" href="/styles.css?v=20260630_table_actions_v3" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-logo-button" aria-label="DRSOSystem">
+            <img class="brand-logo" src="/assets/drsosystem-logo.png?v=20260603_46" alt="DRSOSystem" />
+          </div>
+          <div>
+            <strong class="brand-title">DRSOSystem</strong>
+            <span class="brand-subtitle">Uma Vida. Um Sistema.</span>
+          </div>
+        </div>
+        <nav id="nav" aria-label="Modulos principais"></nav>
+      </aside>
+      <main class="main">
+        <button class="floating-brand-toggle" id="floating-brand-toggle" type="button" title="Mostrar menu lateral" aria-label="Mostrar menu lateral">&#9776;</button>
+        <button class="floating-topbar-toggle" id="floating-topbar-toggle" type="button" title="Mostrar barra superior" aria-label="Mostrar barra superior">&#8964;</button>
+        <header class="topbar app-reference-topbar">
+          <div class="topbar-section-meta">
+            <p id="section-kicker">Hoje é um bom dia para colocar a vida em ordem.</p>
+            <h1 id="section-title">Dashboard</h1>
+          </div>
+          <div class="topbar-global-search" role="search">
+            <span aria-hidden="true">&#128269;</span>
+            <input id="global-search-input" type="search" placeholder="Pergunte ou pesquise qualquer coisa..." aria-label="Buscar no sistema" />
+            <kbd>Ctrl K</kbd>
+            <button id="global-search-clear" type="button" aria-label="Limpar pesquisa">x</button>
+            <div id="global-search-results" class="global-search-results hidden"></div>
+          </div>
+          <div class="top-actions">
+            <div class="topbar-status" aria-label="Hora, data e clima atuais">
+              <div class="topbar-clock time-widget" id="topbar-clock" aria-label="Hora e data atuais">
+                <span class="widget-icon time-widget-icon" aria-hidden="true">
+                  🕒
+                </span>
+                <div class="widget-main">
+                  <div class="widget-title-row">
+                    <strong class="widget-title" id="topbar-clock-time">--:--</strong>
+                    <em class="widget-badge" id="topbar-clock-seconds">00</em>
+                  </div>
+                  <span class="widget-subtitle" id="topbar-clock-date">---</span>
+                </div>
+              </div>
+              <div class="topbar-weather-static weather-widget" aria-label="Clima atual" tabindex="0" title="Clima atual em Goiânia">
+                <span class="widget-icon weather-widget-icon" id="topbar-weather-icon" aria-hidden="true">🌤️</span>
+                <div class="weather-widget-content">
+                  <strong class="widget-title" id="topbar-weather-temp">--&deg;</strong>
+                  <span class="widget-divider" aria-hidden="true"></span>
+                  <small class="widget-subtitle" id="topbar-weather-text">Clima indisponível<br />Goiânia</small>
+                </div>
+                <span class="weather-toggle" aria-hidden="true">&#8964;</span>
+              </div>
+            </div>
+            <button class="icon-button topbar-notification" id="topbar-notification-button" type="button" title="Notificacoes" aria-label="Notificacoes" aria-haspopup="dialog" aria-expanded="false">
+              &#128276;
+              <span id="topbar-notification-badge">0</span>
+            </button>
+            <button class="icon-button" id="topbar-agenda-button" type="button" title="Agenda" aria-label="Agenda">&#128197;</button>
+            <button class="icon-button topbar-toggle" id="topbar-toggle" title="Ocultar barra superior" aria-label="Ocultar barra superior">&#8963;</button>
+            <button class="icon-button info-button" id="section-info-button" title="Informacoes da tela" aria-label="Informacoes da tela">&#128161;</button>
+            <button class="icon-button" id="theme-toggle" title="Alternar tema" aria-label="Alternar tema">&#9680;</button>
+            <button class="topbar-profile-button" id="topbar-profile-button" type="button" title="Abrir opcoes" aria-label="Abrir opcoes" aria-expanded="false">
+              <span class="topbar-profile-avatar" id="topbar-profile-avatar">D</span>
+              <span class="topbar-profile-copy">
+                <strong id="topbar-profile-name">Opções</strong>
+                <small>Perfil e sair</small>
+              </span>
+              <span class="topbar-profile-chevron">&#8964;</span>
+            </button>
+            <div class="topbar-options-menu" id="topbar-options-menu" aria-hidden="true">
+              <button type="button" id="topbar-options-profile">Perfil</button>
+              <button type="button" id="topbar-options-logout">Sair</button>
+            </div>
+          </div>
+        </header>
+        <section id="view"></section>
+        <nav id="context-dock" class="context-dock" aria-label="Subabas do modulo atual"></nav>
+      </main>
+    </div>
+    <div id="toast"></div>
+    <script src="/app.js?v=20260630_table_actions_v3" type="module"></script>
+  </body>
+</html>
