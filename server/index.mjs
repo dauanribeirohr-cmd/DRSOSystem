@@ -16,8 +16,6 @@ const backupDir = path.join(rootDir, "backups");
 const documentUploadsDir = path.join(dataDir, "documents");
 const musicUploadsDir = path.join(dataDir, "music");
 const dbPath = path.join(dataDir, "drsosystem.sqlite");
-const devLoginMarker = path.join(dataDir, ".dev-login-seeded");
-const dauanLoginMarker = path.join(dataDir, ".login-dauan-20260613");
 const drsLoginMarker = path.join(dataDir, ".login-drs-20260614");
 const documentKeyPath = path.join(dataDir, ".documents-key");
 const passwordKeyPath = path.join(dataDir, ".passwords-key");
@@ -37,7 +35,9 @@ try {
 } catch {
   // Arquivo .env e opcional; variaveis do sistema continuam funcionando.
 }
-const portableStorageRoot = path.join(path.parse(rootDir).root, "DRSOStorage");
+// Na instalacao da VPS, o aplicativo e o armazenamento sao pastas irmas dentro
+// de C:\DRSOSystem. No pendrive, continuam sendo pastas irmas na raiz da unidade.
+const portableStorageRoot = path.join(path.dirname(rootDir), "DRSOStorage");
 const defaultGalleryRootDir = path.join(portableStorageRoot, "Galeria");
 const galleryRootDir = path.resolve(String(runtimeProcess?.env?.DRSO_GALLERY_DIR || localEnv.DRSO_GALLERY_DIR || defaultGalleryRootDir));
 const port = Number(runtimeProcess?.env?.PORT || 3333);
@@ -1553,23 +1553,6 @@ db.exec("UPDATE documents SET created_at = datetime(created_at, '-3 hours') WHER
 db.exec("UPDATE documents SET uploaded_at = datetime(uploaded_at, '-3 hours') WHERE uploaded_at IS NOT NULL AND datetime(uploaded_at) > datetime('now', 'localtime', '+30 minutes')");
 db.exec("UPDATE documents SET updated_at = datetime(updated_at, '-3 hours') WHERE updated_at IS NOT NULL AND datetime(updated_at) > datetime('now', 'localtime', '+30 minutes')");
 db.exec("UPDATE documents SET source_modified_at = datetime(source_modified_at, '-3 hours') WHERE source_modified_at IS NOT NULL AND datetime(source_modified_at) > datetime('now', 'localtime', '+30 minutes')");
-
-if (!existsSync(devLoginMarker)) {
-  run("UPDATE users SET username = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1", [
-    "drs",
-    hashPassword("Da951357@@")
-  ]);
-  await writeFile(devLoginMarker, "drs\n", "utf8");
-}
-
-if (!existsSync(dauanLoginMarker)) {
-  run("UPDATE users SET username = ?, name = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1", [
-    "dauan.ribeiro.silva",
-    "Dauan",
-    "scrypt:edd8da269ea5109a107d7229ebff1e68:eddf40fdbb31d40dfcfff64319e690caabe90e701e35f32676cd1ee72a923620d790c3e4875e853ab45160644b0493125a18b2ffffa156939baa5c6e2a3ed4e1"
-  ]);
-  await writeFile(dauanLoginMarker, "dauan.ribeiro.silva\n", "utf8");
-}
 
 if (!existsSync(drsLoginMarker)) {
   run("UPDATE users SET username = ?, name = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1", [
@@ -6403,7 +6386,7 @@ async function ensureGalleryStorage() {
 function assertGalleryPath(filePath = "") {
   const resolved = path.resolve(filePath);
   const relative = path.relative(galleryRootDir, resolved);
-  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+  if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
     const error = new Error("Caminho de galeria invalido.");
     error.statusCode = 403;
     throw error;
@@ -6414,18 +6397,32 @@ function assertGalleryPath(filePath = "") {
 function resolveGalleryStoredPath(filePath = "") {
   const raw = String(filePath || "").trim();
   if (!raw) return "";
+
+  // Caminhos ja gravados com a raiz atual podem ser usados diretamente.
   const direct = path.resolve(raw);
   const directRelative = path.relative(galleryRootDir, direct);
-  if (!directRelative.startsWith("..") && !path.isAbsolute(directRelative) && existsSync(direct)) return direct;
-  const normalized = raw.replace(/\//g, "\\");
-  const marker = "\\DRSOStorage\\Galeria\\";
-  const markerIndex = normalized.toLowerCase().indexOf(marker.toLowerCase());
-  if (markerIndex >= 0) {
-    const relativePart = normalized.slice(markerIndex + marker.length);
-    const remapped = assertGalleryPath(path.join(galleryRootDir, relativePart));
-    if (existsSync(remapped)) return remapped;
+  if (directRelative !== ".." && !directRelative.startsWith(`..${path.sep}`) && !path.isAbsolute(directRelative)) {
+    return direct;
   }
-  return assertGalleryPath(raw);
+
+  // Registros antigos podem conter uma letra de unidade ou uma raiz anterior.
+  // Aproveitamos somente o trecho relativo depois de DRSOStorage/Galeria e o
+  // remontamos sob a raiz configurada; assertGalleryPath bloqueia qualquer "..".
+  const parts = raw.split(/[\\/]+/);
+  const storageIndex = parts.findIndex((part, index) => (
+    part.toLowerCase() === "drsostorage"
+    && parts[index + 1]?.toLowerCase() === "galeria"
+  ));
+  if (storageIndex >= 0) {
+    return assertGalleryPath(path.join(galleryRootDir, ...parts.slice(storageIndex + 2)));
+  }
+
+  // Caminhos relativos no banco sao sempre relativos a pasta Galeria.
+  if (!path.isAbsolute(raw)) {
+    return assertGalleryPath(path.join(galleryRootDir, ...parts));
+  }
+
+  return assertGalleryPath(direct);
 }
 
 function wishlistCleanText(value, max = 600) {
@@ -6934,6 +6931,7 @@ async function galleryMediaFile(userId, id, thumbnail = false, albumToken = "") 
   if (!row) return null;
   if (row.album_password_hash && !galleryAlbumTokenValid(userId, Number(row.album_id || 0), albumToken)) return null;
   const filePath = resolveGalleryStoredPath(thumbnail && row.caminho_thumbnail ? row.caminho_thumbnail : row.caminho_arquivo);
+  console.log(`[Galeria] Caminho final ${thumbnail ? "da miniatura" : "da midia"}: ${filePath}`);
   if (!existsSync(filePath)) return null;
   const fileStat = await stat(filePath);
   return { row, filePath, size: fileStat.size };
@@ -10142,8 +10140,20 @@ async function api(req, res, pathname, query) {
   if (galleryFileMatch && req.method === "GET") {
     const file = await galleryMediaFile(user.id, Number(galleryFileMatch[2]), galleryFileMatch[1] === "thumbnail", query.get("album_token") || "");
     if (!file) return json(res, 404, { error: "Arquivo nao encontrado." });
-    const ext = `.${file.row.extensao}`;
-    const type = ext === ".mp4" ? "video/mp4" : ext === ".webm" ? "video/webm" : ext === ".png" ? "image/png" : ext === ".gif" ? "image/gif" : ext === ".webp" ? "image/webp" : "image/jpeg";
+    // A miniatura pode ser WebP mesmo quando a foto original e PNG/JPEG.
+    const ext = path.extname(file.filePath).toLowerCase() || `.${file.row.extensao}`;
+    const type = ({
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+      ".gif": "image/gif",
+      ".webp": "image/webp",
+      ".mp4": "video/mp4",
+      ".webm": "video/webm",
+      ".mov": "video/quicktime",
+      ".avi": "video/x-msvideo",
+      ".mkv": "video/x-matroska"
+    })[ext] || "application/octet-stream";
     const range = req.headers.range && galleryFileMatch[1] !== "download" ? String(req.headers.range) : "";
     const rangeMatch = range.match(/bytes=(\d+)-(\d*)/);
     if (rangeMatch) {
@@ -12394,6 +12404,7 @@ if (runtimeProcess?.argv?.[1] === fileURLToPath(import.meta.url)) {
   server.listen(port, () => {
     console.log(`DRSOSystem rodando em http://localhost:${port}`);
     console.log(`Banco local: ${dbPath}`);
+    console.log(`[Galeria] Caminho base configurado: ${galleryRootDir}`);
   });
 }
 
