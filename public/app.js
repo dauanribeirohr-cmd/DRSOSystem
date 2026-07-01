@@ -2199,6 +2199,7 @@ function tableActionSources(container) {
 function enhanceTableActionGroup(container) {
   if (!container || container.dataset.actionEnhanced === "true") return;
   if (container.tagName === "TD") {
+    container.dataset.actionEnhanced = "true";
     const wrapper = el("div", { class: "actions" }, [...container.children]);
     container.replaceChildren(wrapper);
     container.classList.add("action-column");
@@ -14246,13 +14247,25 @@ function motoResourceView(resource, data, options) {
 async function renderMoto() {
   const view = document.querySelector("#view");
   view.replaceChildren(el("div", { class: "loading" }, ["Carregando modulo de veiculo..."]));
-  const [data, options] = await Promise.all([api("/api/moto/overview"), api("/api/moto/options")]);
-  const content = state.motoTab === "dashboard"
-    ? motoDashboard(data)
-    : state.motoTab === "reports"
-      ? motoReports(data)
-      : motoResourceView(state.motoTab, data, options);
-  view.replaceChildren(el("div", { class: "stack moto-page" }, [motoSubnav(), content]));
+  try {
+    const [data, options] = await Promise.all([api("/api/moto/overview"), api("/api/moto/options")]);
+    const content = state.motoTab === "dashboard"
+      ? motoDashboard(data)
+      : state.motoTab === "reports"
+        ? motoReports(data)
+        : motoResourceView(state.motoTab, data, options);
+    view.replaceChildren(el("div", { class: "stack moto-page" }, [motoSubnav(), content]));
+  } catch (error) {
+    console.error("Falha ao carregar modulo de veiculos.", error);
+    view.replaceChildren(el("div", { class: "stack moto-page" }, [
+      motoSubnav(),
+      el("section", { class: "card" }, [el("div", { class: "card-body stack" }, [
+        el("h2", {}, ["Nao foi possivel carregar Veiculos"]),
+        el("p", { class: "muted" }, [error?.message || "O modulo encontrou um erro inesperado."]),
+        el("button", { class: "primary-button", type: "button", onclick: renderMoto }, ["Tentar novamente"])
+      ])])
+    ]));
+  }
 }
 
 const personalTabs = [
