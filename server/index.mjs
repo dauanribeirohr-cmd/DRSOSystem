@@ -7475,6 +7475,10 @@ function vendinhaList(userId, query) {
     `SELECT * FROM vendinha_month_limits WHERE user_id = ? AND month = ? AND ${establishmentId ? "establishment_id = ?" : "establishment_id IS NULL"} LIMIT 1`,
     establishmentId ? [userId, month, establishmentId] : [userId, month]
   ) || { limit_value: 0 };
+  const currentClosing = get(
+    `SELECT * FROM vendinha_month_closings WHERE user_id = ? AND month = ? AND ${establishmentId ? "establishment_id = ?" : "establishment_id IS NULL"} ORDER BY id DESC LIMIT 1`,
+    establishmentId ? [userId, month, establishmentId] : [userId, month]
+  ) || null;
   const totals = consumptions.reduce((acc, item) => {
     const value = Number(item.total_value || 0);
     acc.total += value;
@@ -7487,6 +7491,9 @@ function vendinhaList(userId, query) {
     return acc;
   }, { total: 0, paid: 0, open: 0, count: 0, days: new Set(), products: {}, daily: {} });
   const monthPaid = Boolean(consumptions.length) && totals.open <= 0 && (vendinhaMonthPaid(userId, month, establishmentId) || totals.paid >= totals.total);
+  const amountPaid = currentClosing ? Number(currentClosing.total_paid || 0) : totals.paid;
+  const closingTotal = currentClosing ? Number(currentClosing.total_consumed || totals.total) : totals.total;
+  const paymentDifference = currentClosing ? roundMoney(amountPaid - closingTotal) : 0;
   const limitValue = Number(limit.limit_value || 0);
   const monthlyRows = all(`
     SELECT substr(date, 1, 7) AS month, SUM(total_value) AS total
@@ -7503,11 +7510,15 @@ function vendinhaList(userId, query) {
     products,
     consumptions,
     closings,
+    current_closing: currentClosing,
     limit,
     summary: {
       total: roundMoney(totals.total),
       open: roundMoney(totals.open),
-      paid: roundMoney(totals.paid),
+      paid: roundMoney(amountPaid),
+      payment_difference: paymentDifference,
+      discount_received: paymentDifference < 0 ? roundMoney(Math.abs(paymentDifference)) : 0,
+      extra_paid: paymentDifference > 0 ? paymentDifference : 0,
       count: totals.count,
       days: totals.days.size,
       daily_average: roundMoney(totals.days.size ? totals.total / totals.days.size : 0),
@@ -7618,6 +7629,13 @@ function closeVendinhaMonth(userId, payload) {
     values.push(establishmentId);
   }
   const total = Number(get(`SELECT COALESCE(SUM(total_value), 0) AS total FROM vendinha_consumptions WHERE ${where.join(" AND ")}`, values)?.total || 0);
+  const hasTotalPaid = payload.total_paid !== undefined && payload.total_paid !== null && String(payload.total_paid).trim() !== "";
+  const totalPaid = hasTotalPaid ? Number(payload.total_paid) : total;
+  if (!Number.isFinite(totalPaid) || totalPaid < 0) {
+    const error = new Error("Informe um valor pago valido, igual ou maior que zero.");
+    error.statusCode = 400;
+    throw error;
+  }
   const paidDate = String(payload.payment_date || currentDateTime().slice(0, 10)).slice(0, 10);
   run(`UPDATE vendinha_consumptions SET status = 'paid', payment_date = ?, updated_at = ? WHERE ${where.join(" AND ")}`, [paidDate, currentDateTime(), ...values]);
   run(
@@ -7627,9 +7645,43 @@ function closeVendinhaMonth(userId, payload) {
   run(`
     INSERT INTO vendinha_month_closings (user_id, month, establishment_id, total_consumed, total_paid, status, payment_date, notes, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, 'paid', ?, ?, ?, ?)
-  `, [userId, month, establishmentId, roundMoney(total), roundMoney(Number(payload.total_paid || total)), paidDate, String(payload.notes || "").trim(), currentDateTime(), currentDateTime()]);
-  recordTimeline("Mes da vendinha pago", `${month} - ${moneyText(total)}`, "vendinha");
-  return { ok: true, month, total_paid: roundMoney(Number(payload.total_paid || total)), payment_date: paidDate };
+  `, [userId, month, establishmentId, roundMoney(total), roundMoney(totalPaid), paidDate, String(payload.notes || "").trim(), currentDateTime(), currentDateTime()]);
+  const difference = roundMoney(totalPaid - total);
+  const adjustment = difference < 0 ? `desconto de ${moneyText(Math.abs(difference))}` : difference > 0 ? `acrescimo de ${moneyText(difference)}` : "valor exato da conta";
+  recordTimeline("Mes da vendinha pago", `${month} - ${moneyText(totalPaid)} (${adjustment})`, "vendinha");
+  return { ok: true, month, total_consumed: roundMoney(total), total_paid: roundMoney(totalPaid), payment_difference: difference, payment_date: paidDate };
+}
+
+function reopenVendinhaMonth(userId, payload) {
+  const month = vendinhaMonth(payload.month);
+  const establishmentId = vendinhaEstablishmentFilter(payload.establishment_id);
+  const consumptionWhere = ["user_id = ?", "substr(date, 1, 7) = ?"];
+  const consumptionValues = [userId, month];
+  if (establishmentId) {
+    consumptionWhere.push("establishment_id = ?");
+    consumptionValues.push(establishmentId);
+  }
+  const closingWhere = `user_id = ? AND month = ? AND ${establishmentId ? "establishment_id = ?" : "establishment_id IS NULL"}`;
+  const closingValues = establishmentId ? [userId, month, establishmentId] : [userId, month];
+  const closing = get(`SELECT * FROM vendinha_month_closings WHERE ${closingWhere} ORDER BY id DESC LIMIT 1`, closingValues);
+  const paidCount = Number(get(`SELECT COUNT(*) AS count FROM vendinha_consumptions WHERE ${consumptionWhere.join(" AND ")} AND status = 'paid'`, consumptionValues)?.count || 0);
+  if (!closing && !paidCount) {
+    const error = new Error("Nao existe pagamento para estornar nesse mes.");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    run(`UPDATE vendinha_consumptions SET status = 'open', payment_date = NULL, updated_at = ? WHERE ${consumptionWhere.join(" AND ")}`, [currentDateTime(), ...consumptionValues]);
+    run(`DELETE FROM vendinha_month_closings WHERE ${closingWhere}`, closingValues);
+    recordTimeline("Pagamento da vendinha estornado", `${month} - ${moneyText(closing?.total_paid || 0)}`, "vendinha");
+    db.exec("COMMIT");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+  return { ok: true, month, reopened: paidCount, previous_total_paid: roundMoney(Number(closing?.total_paid || 0)) };
 }
 
 function saveVendinhaLimit(userId, payload) {
@@ -12060,6 +12112,13 @@ async function api(req, res, pathname, query) {
   if (pathname === "/api/vendinha/close-month" && req.method === "POST") {
     try {
       return json(res, 200, closeVendinhaMonth(user.id, await body(req)));
+    } catch (error) {
+      return json(res, Number(error.statusCode || 400), { error: error.message });
+    }
+  }
+  if (pathname === "/api/vendinha/reopen-month" && req.method === "POST") {
+    try {
+      return json(res, 200, reopenVendinhaMonth(user.id, await body(req)));
     } catch (error) {
       return json(res, Number(error.statusCode || 400), { error: error.message });
     }

@@ -12026,9 +12026,17 @@ body.light .global-music-player {
 
 .vendinha-filter-row {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) 170px 220px auto;
+  grid-template-columns: minmax(220px, 1fr) 170px 220px minmax(370px, auto);
   gap: 12px;
   align-items: end;
+}
+
+.vendinha-payment-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .vendinha-summary-grid,
@@ -12038,7 +12046,7 @@ body.light .global-music-player {
 }
 
 .vendinha-summary-grid {
-  grid-template-columns: repeat(7, minmax(140px, 1fr));
+  grid-template-columns: repeat(8, minmax(140px, 1fr));
 }
 
 .vendinha-metric {
@@ -12249,6 +12257,12 @@ body.light .global-music-player {
   background: linear-gradient(90deg, var(--accent), var(--info));
 }
 
+@media (max-width: 1500px) {
+  .vendinha-summary-grid {
+    grid-template-columns: repeat(4, minmax(140px, 1fr));
+  }
+}
+
 @media (max-width: 1180px) {
   .subscription-summary-grid,
   .subscription-chart-grid,
@@ -12298,6 +12312,10 @@ body.light .global-music-player {
 
   .vendinha-consumption-row .actions {
     grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .vendinha-payment-actions {
     justify-content: flex-start;
   }
 }

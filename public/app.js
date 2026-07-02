@@ -18129,6 +18129,13 @@ function vendinhaStatusLabel(status) {
   return status === "paid" || status === "pago" ? "Pago" : "Em aberto";
 }
 
+function vendinhaAdjustmentLabel(difference = 0) {
+  const value = Number(difference || 0);
+  if (value < 0) return `Desconto de ${money(Math.abs(value))}`;
+  if (value > 0) return `Pago a mais: ${money(value)}`;
+  return "Sem diferenca";
+}
+
 function vendinhaMonthName(month) {
   const [year, monthNumber] = String(month || currentMonth()).split("-");
   return new Date(Number(year), Number(monthNumber) - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
@@ -18175,20 +18182,36 @@ function vendinhaFilters(data) {
         ...(data.establishments || []).map((store) => el("option", { value: store.id, selected: String(state.vendinhaEstablishment) === String(store.id) ? "selected" : undefined }, [store.name]))
       ])
     ]),
-    el("button", {
-      class: data.summary.status === "paid" ? "saved-button" : "primary-button",
-      type: "button",
-      onclick: () => closeVendinhaMonth(data)
-    }, [data.summary.status === "paid" ? "Mes quitado" : "Marcar mes como pago"])
+    el("div", { class: "vendinha-payment-actions" }, [
+      el("button", {
+        class: data.summary.status === "paid" && !Number(data.summary.payment_difference || 0) ? "saved-button" : "primary-button",
+        type: "button",
+        onclick: () => closeVendinhaMonth(data, "exact")
+      }, [data.summary.status === "paid" && !Number(data.summary.payment_difference || 0) ? "Quitado pelo valor da conta" : "Paguei o valor da conta"]),
+      el("button", {
+        class: "secondary-button",
+        type: "button",
+        onclick: () => closeVendinhaMonth(data, "actual")
+      }, [data.summary.status === "paid" ? "Corrigir valor pago" : "Informar valor pago"]),
+      data.summary.status === "paid" ? el("button", {
+        class: "danger-button",
+        type: "button",
+        onclick: () => reopenVendinhaMonth(data)
+      }, ["Estornar pagamento"]) : el("span")
+    ])
   ])]);
 }
 
 function vendinhaSummaryCards(data) {
   const summary = data.summary || {};
+  const difference = Number(summary.payment_difference || 0);
+  const adjustmentLabel = difference < 0 ? "Desconto recebido" : difference > 0 ? "Valor pago a mais" : "Diferenca no acerto";
+  const adjustmentValue = difference ? money(Math.abs(difference)) : "Sem diferenca";
   return el("section", { class: "vendinha-summary-grid" }, [
     vendinhaMetric("Total consumido", money(summary.total), "☕", summary.limit_exceeded ? "danger" : "accent"),
     vendinhaMetric("Em aberto", money(summary.open), "🟡", summary.open > 0 ? "warn" : "positive"),
     vendinhaMetric("Pago", money(summary.paid), "✅", "positive"),
+    vendinhaMetric(adjustmentLabel, adjustmentValue, difference < 0 ? "🏷️" : difference > 0 ? "➕" : "🤝", difference < 0 ? "positive" : difference > 0 ? "blue" : "accent"),
     vendinhaMetric("Lancamentos", String(summary.count || 0), "🧾", "blue"),
     vendinhaMetric("Dias com consumo", String(summary.days || 0), "📅", "accent"),
     vendinhaMetric("Media diaria", money(summary.daily_average), "📊", "blue"),
@@ -18467,26 +18490,49 @@ function vendinhaHistory(data) {
     (data.closings || []).length ? el("div", { class: "vendinha-history-list" }, data.closings.map((item) => el("button", { type: "button", onclick: () => { state.vendinhaMonth = item.month; state.vendinhaEstablishment = item.establishment_id && Number(item.establishment_id) > 0 ? String(item.establishment_id) : ""; renderVendinha(); } }, [
       el("strong", {}, [vendinhaMonthName(item.month)]),
       el("span", {}, [item.establishment_name || "Todas as vendinhas"]),
-      el("b", {}, [money(item.total_paid || item.total_consumed || 0)]),
-      el("small", {}, [item.payment_date ? `Pago em ${formatDateBR(item.payment_date)}` : "Pago"])
+      el("b", {}, [`Pago ${money(item.total_paid ?? item.total_consumed ?? 0)}`]),
+      el("small", {}, [`Conta ${money(item.total_consumed || 0)} · ${vendinhaAdjustmentLabel(Number(item.total_paid || 0) - Number(item.total_consumed || 0))}${item.payment_date ? ` · ${formatDateBR(item.payment_date)}` : ""}`])
     ]))) : el("p", { class: "muted" }, ["Nenhum fechamento registrado ainda."])
   ])]);
 }
 
-async function closeVendinhaMonth(data) {
-  const total = data.summary?.total || 0;
+async function closeVendinhaMonth(data, mode = "exact") {
+  const total = Number(data.summary?.total || 0);
+  let totalPaid = total;
+  if (mode === "actual") {
+    totalPaid = promptBRL("Qual foi o valor exato que voce pagou?", data.summary?.status === "paid" ? data.summary?.paid : total);
+    if (totalPaid === null) return;
+    if (!Number.isFinite(totalPaid) || totalPaid < 0) return toast("Informe um valor pago valido.");
+  }
+  const difference = Math.round((totalPaid - total) * 100) / 100;
   const ok = await confirmAction({
-    title: "Marcar mes como pago?",
-    message: `Isso vai marcar todos os consumos de ${vendinhaMonthName(data.month)} como pagos. Total: ${money(total)}.`,
-    confirmText: "Marcar como pago"
+    title: mode === "actual" ? "Registrar valor realmente pago?" : "Marcar pelo valor da conta?",
+    message: `Conta de ${money(total)}. Valor pago: ${money(totalPaid)}. ${vendinhaAdjustmentLabel(difference)}. Todos os consumos de ${vendinhaMonthName(data.month)} serao quitados.`,
+    confirmText: mode === "actual" ? "Registrar pagamento" : "Quitar valor da conta"
   });
   if (!ok) return;
-  const notes = window.prompt("Observacao do pagamento (opcional):", "") || "";
+  const notes = window.prompt("Observacao do pagamento (opcional):", data.current_closing?.notes || "") || "";
   await api("/api/vendinha/close-month", {
     method: "POST",
-    body: JSON.stringify({ month: data.month, establishment_id: state.vendinhaEstablishment, total_paid: total, payment_date: today(), notes })
+    body: JSON.stringify({ month: data.month, establishment_id: state.vendinhaEstablishment, total_paid: totalPaid, payment_date: today(), notes })
   });
-  toast("Mes marcado como pago.");
+  toast(difference < 0 ? `Pagamento registrado com desconto de ${money(Math.abs(difference))}.` : difference > 0 ? `Pagamento registrado com ${money(difference)} a mais.` : "Mes quitado pelo valor exato da conta.");
+  renderVendinha();
+}
+
+async function reopenVendinhaMonth(data) {
+  const ok = await confirmAction({
+    title: "Estornar pagamento da vendinha?",
+    message: `O pagamento de ${vendinhaMonthName(data.month)} sera removido e ${data.summary?.count || 0} lancamento(s) voltarao para Em aberto. Nenhum consumo sera apagado.`,
+    confirmText: "Estornar pagamento",
+    danger: true
+  });
+  if (!ok) return;
+  await api("/api/vendinha/reopen-month", {
+    method: "POST",
+    body: JSON.stringify({ month: data.month, establishment_id: state.vendinhaEstablishment })
+  });
+  toast("Pagamento estornado. O mes voltou para Em aberto.");
   renderVendinha();
 }
 
