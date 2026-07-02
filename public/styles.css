@@ -19622,6 +19622,7 @@ body:not(.locked) .topbar-weather-static > span {
 
 body:not(.locked) .topbar .top-actions .icon-button {
   position: relative;
+  overflow: visible;
   width: 44px;
   height: 44px;
   min-width: 44px;
@@ -19642,20 +19643,24 @@ body:not(.locked) .topbar .top-actions .icon-button:hover {
   transform: none;
 }
 
-body:not(.locked) .topbar-notification span {
+body:not(.locked) #topbar-notification-badge {
   position: absolute;
-  top: 4px;
-  right: 3px;
-  width: 20px;
-  height: 20px;
+  top: 6px;
+  right: 6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: 999px;
   background: var(--primary);
   color: #ffffff;
-  font-size: 11px;
+  font-size: 9px;
+  line-height: 1;
   font-weight: 700;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .92);
+  z-index: 2;
 }
 
 body:not(.locked) .topbar-avatar-button {
@@ -20175,14 +20180,15 @@ body:not(.locked) .topbar .top-actions .icon-button {
   width: 42px;
   height: 42px;
   border-radius: 15px;
+  overflow: visible;
   background: rgba(255, 255, 255, .72);
   border: 1px solid var(--border-soft);
   color: #334155;
 }
 
-body:not(.locked) .topbar-notification span {
-  top: -4px;
-  right: -3px;
+body:not(.locked) #topbar-notification-badge {
+  top: 6px;
+  right: 6px;
   background: var(--app-accent);
 }
 
@@ -25446,20 +25452,24 @@ html[data-theme="dark"] .auth-privacy-note {
 
 .topbar-notification #topbar-notification-badge {
   position: absolute;
-  top: -5px;
-  right: -4px;
-  min-width: 18px;
-  height: 18px;
+  top: -1px;
+  right: -1px;
+  min-width: 20px;
+  height: 20px;
   display: grid;
   place-items: center;
   padding: 0 5px;
-  border: 2px solid var(--surface);
+  border: 0;
   border-radius: 999px;
-  background: #ef4444;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 800;
   line-height: 1;
+  text-shadow: 0 1px 2px rgba(15, 23, 42, .35);
+  box-shadow: 0 0 0 2px #ffffff, 0 6px 12px rgba(239, 68, 68, .35);
+  z-index: 5;
 }
 
 .topbar-notification #topbar-notification-badge[hidden] {
@@ -25468,6 +25478,23 @@ html[data-theme="dark"] .auth-privacy-note {
 
 .topbar-notification.has-new-notification {
   animation: notificationBellPulse .55s ease;
+}
+
+html[data-theme="dark"] body:not(.locked) .topbar-notification #topbar-notification-badge,
+body.theme-dark:not(.locked) .topbar-notification #topbar-notification-badge,
+body[data-theme="dark"]:not(.locked) .topbar-notification #topbar-notification-badge {
+  background: #fb7185 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 2px #0f172a, 0 6px 12px rgba(251, 113, 133, .3);
+}
+
+html[data-theme="light"] body:not(.locked) .topbar-notification #topbar-notification-badge,
+body.theme-light:not(.locked) .topbar-notification #topbar-notification-badge,
+body.light:not(.locked) .topbar-notification #topbar-notification-badge,
+body[data-theme="light"]:not(.locked) .topbar-notification #topbar-notification-badge {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 2px #ffffff, 0 6px 12px rgba(239, 68, 68, .35);
 }
 
 @keyframes notificationBellPulse {
@@ -31783,6 +31810,25 @@ body:not(.locked) .action-menu {
   box-shadow: 0 18px 45px rgba(15, 23, 42, .18), 0 3px 10px rgba(15, 23, 42, .08);
   backdrop-filter: blur(16px);
   animation: actionMenuIn .14s ease-out;
+}
+
+body:not(.locked) .action-menu--context {
+  transform-origin: top left;
+}
+
+body:not(.locked) .context-actions-enabled .context-action-column {
+  display: none !important;
+}
+
+body:not(.locked) tbody tr:has(.action-cell),
+body:not(.locked) .subscription-row:has(.action-cell),
+body:not(.locked) .vendinha-consumption-row:has(.action-cell) {
+  cursor: context-menu;
+}
+
+body:not(.locked) .context-actions-open {
+  outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: -2px;
 }
 
 @keyframes actionMenuIn {

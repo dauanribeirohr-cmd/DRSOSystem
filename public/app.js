@@ -2120,6 +2120,7 @@ function tableActionMeta(source) {
 function closeTableActionMenu() {
   activeTableActionMenu?.remove();
   activeTableActionAnchor?.setAttribute("aria-expanded", "false");
+  activeTableActionAnchor?.classList?.remove("context-actions-open");
   activeTableActionMenu = null;
   activeTableActionAnchor = null;
 }
@@ -2175,6 +2176,47 @@ function openTableActionMenu(anchor, sources) {
   activeTableActionAnchor = anchor;
 }
 
+function contextActionGroup(target) {
+  const tableRow = target.closest?.("tbody tr");
+  if (tableRow) {
+    const group = tableRow.querySelector(".action-cell");
+    if (group) return { owner: tableRow, group };
+  }
+  const view = document.querySelector("#view");
+  for (let owner = target; owner && owner !== view && owner !== document.body; owner = owner.parentElement) {
+    const groups = owner.querySelectorAll?.(":scope > .action-cell, :scope > .actions.action-cell, :scope > * > .action-cell, :scope > * > .actions.action-cell");
+    if (groups?.length === 1) return { owner, group: groups[0] };
+  }
+  return null;
+}
+
+function openTableActionMenuAtPoint(event, owner, sources) {
+  closeTableActionMenu();
+  const menu = el("div", { class: "action-menu action-menu--context", role: "menu", "aria-label": "Acoes do registro" }, sources.map(createTableActionMenuItem));
+  document.body.append(menu);
+  const menuRect = menu.getBoundingClientRect();
+  const viewportGap = 12;
+  const left = Math.max(viewportGap, Math.min(window.innerWidth - menuRect.width - viewportGap, event.clientX));
+  const top = Math.max(viewportGap, Math.min(window.innerHeight - menuRect.height - viewportGap, event.clientY));
+  menu.style.left = `${Math.round(left)}px`;
+  menu.style.top = `${Math.round(top)}px`;
+  owner.classList.add("context-actions-open");
+  owner.setAttribute("aria-expanded", "true");
+  activeTableActionMenu = menu;
+  activeTableActionAnchor = owner;
+}
+
+function openRowContextActions(event) {
+  if (document.body.classList.contains("locked") || event.target.closest?.("input, textarea, select, [contenteditable='true']")) return;
+  const context = contextActionGroup(event.target);
+  if (!context) return;
+  const sources = [...context.group.querySelectorAll(":scope > .action-menu-source > button, :scope > .action-menu-source > a")];
+  if (!sources.length) return;
+  event.preventDefault();
+  event.stopPropagation();
+  openTableActionMenuAtPoint(event, context.owner, sources);
+}
+
 function createTableDirectAction(source) {
   const meta = tableActionMeta(source);
   const emphasis = meta.type === "view" ? "action-button--primary" : "action-button--ghost";
@@ -2194,6 +2236,22 @@ function createTableDirectAction(source) {
 
 function tableActionSources(container) {
   return [...container.querySelectorAll(":scope > button, :scope > a")].filter((item) => !item.classList.contains("action-button"));
+}
+
+function markContextActionColumn(container) {
+  const cell = container.closest("td");
+  if (cell) {
+    cell.classList.add("context-action-column");
+    const table = cell.closest("table");
+    if (!table) return;
+    table.classList.add("context-actions-enabled");
+    table.querySelectorAll("thead tr").forEach((row) => row.cells[cell.cellIndex]?.classList.add("context-action-column"));
+    return;
+  }
+  const owner = container.closest(".subscription-row, .vendinha-consumption-row");
+  if (!owner) return;
+  owner.classList.add("context-actions-enabled");
+  container.classList.add("context-action-column");
 }
 
 function enhanceTableActionGroup(container) {
@@ -2221,8 +2279,8 @@ function enhanceTableActionGroup(container) {
     el("button", {
       class: "action-button action-button--ghost action-menu-trigger",
       type: "button",
-    title: "Mais opções",
-    "aria-label": "Mais opções",
+      title: "Mais opções",
+      "aria-label": "Mais opções",
       "aria-haspopup": "menu",
       "aria-expanded": "false",
       onclick: (event) => {
@@ -2233,6 +2291,7 @@ function enhanceTableActionGroup(container) {
   ]);
   container.replaceChildren(sourceBox, controls);
   container.closest("td")?.classList.add("action-column");
+  markContextActionColumn(container);
 }
 
 function enhanceTableActions(root = document) {
@@ -2260,6 +2319,7 @@ function enhanceTableActions(root = document) {
 document.addEventListener("click", (event) => {
   if (!event.target.closest?.(".action-menu, .action-menu-trigger")) closeTableActionMenu();
 });
+document.addEventListener("contextmenu", openRowContextActions);
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") closeTableActionMenu();
 });
