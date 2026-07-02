@@ -9340,10 +9340,13 @@ function deleteAgendaEvent(userId, id) {
 }
 
 function dashboard() {
+  const month = currentMonth();
   const finance = get(`SELECT
     COALESCE(SUM(CASE WHEN type='entrada' THEN amount ELSE 0 END),0) AS income,
     COALESCE(SUM(CASE WHEN type='saida' THEN amount ELSE 0 END),0) AS expense
-    FROM financial_transactions`);
+    FROM financial_transactions
+    WHERE substr(date, 1, 7) = ?`, [month]);
+  const totalBalance = accountBalances().reduce((sum, account) => sum + Number(account.total_balance || 0), 0);
   const bets = get(`SELECT
     COALESCE(SUM(CASE WHEN status='settled' THEN profit_loss ELSE 0 END),0) AS profit,
     COALESCE(SUM(CASE WHEN status='settled' THEN stake ELSE 0 END),0) AS stake,
@@ -9353,7 +9356,13 @@ function dashboard() {
     COALESCE(SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END),0) AS pending
     FROM bets`);
   return {
-    finance: { ...finance, balance: finance.income - finance.expense },
+    finance: {
+      income: roundMoney(finance.income),
+      expense: roundMoney(finance.expense),
+      balance: roundMoney(Number(finance.income || 0) - Number(finance.expense || 0)),
+      total_balance: roundMoney(totalBalance),
+      month
+    },
     bets: { ...bets, roi: bets.stake ? (bets.profit / bets.stake) * 100 : 0, hitRate: (bets.wins + bets.losses) ? (bets.wins / (bets.wins + bets.losses)) * 100 : 0 },
     pendingTasks: all("SELECT * FROM projects WHERE status NOT IN ('concluido') ORDER BY deadline ASC LIMIT 5"),
     recentIdeas: all("SELECT * FROM notes WHERE type='ideia' ORDER BY created_at DESC LIMIT 5"),

@@ -2938,8 +2938,9 @@ function dashboardV2Hero() {
 function dashboardOsSummary(data) {
   const finance = data.finance || {};
   const bets = data.bets || {};
+  const monthlyBalance = Number(finance.balance ?? (Number(finance.income || 0) - Number(finance.expense || 0)));
   const summaries = [
-    { icon: "💵", title: "Patrimonio total", value: money(finance.balance || 0), detail: `${money(finance.income || 0)} entradas ↑`, tone: "green", section: "finance", wave: "finance" },
+    { icon: "💵", title: "Patrimonio total", value: money(finance.total_balance || 0), detail: `${money(monthlyBalance)} saldo no mes`, tone: Number(finance.total_balance || 0) < 0 ? "red" : "green", section: "finance", wave: "finance" },
     { icon: "🧾", title: "Contas a pagar", value: String((data.upcomingPlanning || []).length), detail: `${Number(data.attention?.overduePlanning || 0)} em atraso`, tone: "purple", section: "planning", wave: "soft" },
     { icon: "✅", title: "Tarefas hoje", value: String(data.attention?.dueToday || 0), detail: `${(data.pendingTasks || []).length} projetos abertos`, tone: "green", section: "projects", wave: "up" },
     { icon: "🛒", title: "Wishlist", value: "Abrir", detail: "Produtos e compras futuras", tone: "blue", section: "wishlist", wave: "blue" },
@@ -3030,7 +3031,7 @@ function dashboardRecentActivityCard(items) {
 function dashboardFinanceCard(finance) {
   const income = Number(finance.income || 0);
   const expense = Number(finance.expense || 0);
-  const balance = income - expense;
+  const balance = Number(finance.balance ?? (income - expense));
   const total = Math.max(1, income + expense);
   const incomePct = Math.round((income / total) * 100);
   return el("section", { class: "dashboard-os-card finance-card dashboard-v2-finance" }, [
@@ -3042,12 +3043,14 @@ function dashboardFinanceCard(finance) {
       el("div", { class: "dashboard-v2-finance-values" }, [
         el("span", {}, ["Entradas", el("strong", { class: "positive" }, [money(income)])]),
         el("span", {}, ["Saidas", el("strong", { class: "negative" }, [money(expense)])]),
-        el("span", { class: "dashboard-v2-balance-pill" }, ["Saldo", el("strong", {}, [money(balance)])])
+        el("span", { class: `dashboard-v2-balance-pill ${moneyTone(balance)}` }, ["Saldo do mes", el("strong", {}, [money(balance)])])
       ]),
-      el("div", { class: "dashboard-v2-donut", style: `--income:${incomePct}%` }, [el("span", {}, [String(incomePct), "%"])]),
-      el("div", { class: "dashboard-v2-finance-legend" }, [
-        el("span", { class: "positive" }, ["Entradas"]),
-        el("span", { class: "negative" }, ["Saidas"])
+      el("div", { class: "dashboard-v2-finance-chart" }, [
+        el("div", { class: "dashboard-v2-donut", style: `--income:${incomePct}%` }, [el("span", {}, [String(incomePct), "%"])]),
+        el("div", { class: "dashboard-v2-finance-legend" }, [
+          el("span", { class: "positive" }, ["Entradas"]),
+          el("span", { class: "negative" }, ["Saidas"])
+        ])
       ])
     ]) : dashboardEmptyState("💳", "Sem dados financeiros neste periodo.", "Lance entradas e saidas para ver o resumo."),
     el("button", { class: "dashboard-v2-link-button", type: "button", onclick: () => setSection("finance") }, ["Ver relatorio completo →"])
