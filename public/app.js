@@ -1177,8 +1177,9 @@ function enhanceCollapsibleCards() {
     title.append(toggleButton);
     const hasSavedState = Object.prototype.hasOwnProperty.call(collapsedCards, key);
     const shouldForceOpen = card.classList.contains("card-force-open");
+    const shouldForceClosed = card.classList.contains("card-force-closed");
     const shouldDefaultCollapsed = card.classList.contains("card-default-collapsed");
-    setCardCollapsed(card, shouldForceOpen ? false : hasSavedState ? Boolean(collapsedCards[key]) : shouldDefaultCollapsed, key);
+    setCardCollapsed(card, shouldForceOpen ? false : shouldForceClosed ? true : hasSavedState ? Boolean(collapsedCards[key]) : shouldDefaultCollapsed, key);
   });
 }
 
@@ -1188,9 +1189,186 @@ function scheduleEnhanceCollapsibleCards() {
   enhanceCardsTimer = setTimeout(enhanceCollapsibleCards, 0);
 }
 
+const premiumSubnavIconRules = [
+  [/dashboard|painel|visao geral|geral/, "▦"],
+  [/curriculo|perfil|conta/, "◎"],
+  [/curso|estudo|biblioteca|musica/, "▤"],
+  [/trabalho|experiencia|entrega/, "□"],
+  [/habilidade|ia|radio/, "✦"],
+  [/meta|objetivo|aposta/, "◉"],
+  [/checklist|tarefa|lancamento/, "✓"],
+  [/conquista|trofeu/, "◇"],
+  [/projeto|pasta|documento|cadastro/, "▣"],
+  [/habito|agenda|calendario|plano/, "◷"],
+  [/evolucao|estatistica|relatorio|bi/, "↗"],
+  [/amigo|usuario/, "○"],
+  [/inventario|jogo|steam/, "◆"],
+  [/configuracao|ajuste/, "⚙"],
+  [/veiculo|quilometragem/, "◇"],
+  [/abastecimento|oleo|manutencao|pneu|gasto/, "◈"],
+  [/cartao|financeiro|credito/, "▥"],
+  [/google|microsoft|autenticador|guard|2fa/, "⊙"]
+];
+
+function premiumSubnavIcon(label = "") {
+  const normalized = normalizeSearch(label);
+  return premiumSubnavIconRules.find(([pattern]) => pattern.test(normalized))?.[1] || "·";
+}
+
+function premiumSubnavLabel(button) {
+  const copy = button.cloneNode(true);
+  copy.querySelectorAll(".premium-subnav-icon, .music-tab-icon, small").forEach((item) => item.remove());
+  return copy.textContent.trim();
+}
+
+let activePremiumSubnavMenu = null;
+let activePremiumSubnavAnchor = null;
+
+function closePremiumSubnavMenu() {
+  activePremiumSubnavMenu?.remove();
+  activePremiumSubnavAnchor?.setAttribute("aria-expanded", "false");
+  activePremiumSubnavMenu = null;
+  activePremiumSubnavAnchor = null;
+}
+
+function openPremiumSubnavMenu(anchor, sourceButtons) {
+  if (!sourceButtons.length) return;
+  const wasOpen = activePremiumSubnavAnchor === anchor;
+  closePremiumSubnavMenu();
+  if (wasOpen) return;
+  const menu = el("div", { class: "premium-subnav-menu", role: "menu", "aria-label": "Todas as subabas" }, sourceButtons.map((source) => {
+    const label = premiumSubnavLabel(source);
+    return el("button", {
+      class: `premium-subnav-menu-item ${source.classList.contains("active") ? "active" : ""}`.trim(),
+      type: "button",
+      role: "menuitem",
+      onclick: (event) => {
+        event.stopPropagation();
+        closePremiumSubnavMenu();
+        source.click();
+      }
+    }, [
+      el("span", { class: "premium-subnav-icon", "aria-hidden": "true" }, [premiumSubnavIcon(label)]),
+      el("span", {}, [label]),
+      source.classList.contains("active") ? el("strong", { "aria-hidden": "true" }, ["✓"]) : ""
+    ]);
+  }));
+  document.body.append(menu);
+  const anchorRect = anchor.getBoundingClientRect();
+  const menuRect = menu.getBoundingClientRect();
+  const gap = 10;
+  const viewportGap = 12;
+  const left = Math.max(viewportGap, Math.min(window.innerWidth - menuRect.width - viewportGap, anchorRect.right - menuRect.width));
+  const below = anchorRect.bottom + gap;
+  const top = below + menuRect.height <= window.innerHeight - viewportGap
+    ? below
+    : Math.max(viewportGap, anchorRect.top - menuRect.height - gap);
+  menu.style.left = `${Math.round(left)}px`;
+  menu.style.top = `${Math.round(top)}px`;
+  anchor.setAttribute("aria-expanded", "true");
+  activePremiumSubnavMenu = menu;
+  activePremiumSubnavAnchor = anchor;
+}
+
+function updatePremiumSubnavOverflow(nav, buttons, moreButton) {
+  if (!nav.isConnected) return;
+  if (activePremiumSubnavAnchor === moreButton) closePremiumSubnavMenu();
+  buttons.forEach((button) => button.classList.remove("premium-subnav-overflowed"));
+  moreButton.hidden = true;
+  moreButton.__overflowButtons = [];
+
+  const style = getComputedStyle(nav);
+  const gap = Number.parseFloat(style.columnGap || style.gap || "0") || 0;
+  const available = nav.clientWidth
+    - (Number.parseFloat(style.paddingLeft) || 0)
+    - (Number.parseFloat(style.paddingRight) || 0);
+  const widths = buttons.map((button) => Math.ceil(button.getBoundingClientRect().width));
+  const totalWidth = widths.reduce((sum, width) => sum + width, 0) + Math.max(0, buttons.length - 1) * gap;
+  if (totalWidth <= available) return;
+
+  moreButton.hidden = false;
+  const budget = Math.max(0, available - Math.ceil(moreButton.getBoundingClientRect().width) - gap);
+  const visibleIndexes = [];
+  let used = 0;
+  for (let index = 0; index < widths.length; index += 1) {
+    const width = widths[index];
+    const next = used + (visibleIndexes.length ? gap : 0) + width;
+    if (next > budget) break;
+    visibleIndexes.push(index);
+    used = next;
+  }
+
+  const activeIndex = buttons.findIndex((button) => button.classList.contains("active"));
+  if (activeIndex >= 0 && !visibleIndexes.includes(activeIndex)) {
+    const activeWidth = widths[activeIndex];
+    while (visibleIndexes.length && used + gap + activeWidth > budget) {
+      const removed = visibleIndexes.pop();
+      used -= widths[removed] + (visibleIndexes.length ? gap : 0);
+    }
+    visibleIndexes.push(activeIndex);
+  }
+
+  const visible = new Set(visibleIndexes);
+  const overflowButtons = buttons.filter((button, index) => {
+    const overflowed = !visible.has(index);
+    button.classList.toggle("premium-subnav-overflowed", overflowed);
+    return overflowed;
+  });
+  moreButton.__overflowButtons = overflowButtons;
+  moreButton.hidden = overflowButtons.length === 0;
+}
+
+function enhancePremiumSubnavs(root = document) {
+  if (activePremiumSubnavAnchor && !activePremiumSubnavAnchor.isConnected) closePremiumSubnavMenu();
+  const selector = ".subnav:not(.compact):not(.steam-inventory-mini-tabs), .music-subnav, .bi-tabs, .delivery-tabs";
+  root.querySelectorAll?.(selector).forEach((nav) => {
+    if (nav.dataset.premiumSubnav === "true") return;
+    nav.dataset.premiumSubnav = "true";
+    nav.classList.add("premium-subnav");
+    const buttons = [...nav.children].filter((item) => item.tagName === "BUTTON");
+    buttons.forEach((button) => {
+      button.classList.add("premium-subnav-item");
+      const existingIcon = button.querySelector(":scope > .music-tab-icon, :scope > .premium-subnav-icon");
+      if (existingIcon) {
+        existingIcon.classList.add("premium-subnav-icon");
+        existingIcon.textContent = premiumSubnavIcon(premiumSubnavLabel(button));
+        return;
+      }
+      const label = premiumSubnavLabel(button);
+      button.prepend(el("span", { class: "premium-subnav-icon", "aria-hidden": "true" }, [premiumSubnavIcon(label)]));
+    });
+    const moreButton = el("button", {
+      class: "premium-subnav-more",
+      type: "button",
+      title: "Mostrar todas as subabas",
+      "aria-label": "Mostrar todas as subabas",
+      "aria-haspopup": "menu",
+      "aria-expanded": "false",
+      onclick: (event) => {
+        event.stopPropagation();
+        openPremiumSubnavMenu(event.currentTarget, event.currentTarget.__overflowButtons || []);
+      }
+    }, ["•••"]);
+    nav.append(moreButton);
+    const refreshOverflow = () => window.requestAnimationFrame(() => updatePremiumSubnavOverflow(nav, buttons, moreButton));
+    nav.__premiumSubnavResizeObserver?.disconnect();
+    nav.__premiumSubnavResizeObserver = new ResizeObserver(refreshOverflow);
+    nav.__premiumSubnavResizeObserver.observe(nav);
+    refreshOverflow();
+  });
+}
+
+document.addEventListener("click", (event) => {
+  if (!event.target.closest?.(".premium-subnav-menu, .premium-subnav-more")) closePremiumSubnavMenu();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closePremiumSubnavMenu();
+});
+
 function buildAutoIndicators() {
   const view = document.querySelector("#view");
-  if (!view || state.section === "dashboard" || (state.section === "personal" && state.personalTab === "instagram")) return;
+  if (!view || ["dashboard", "finance"].includes(state.section) || (state.section === "personal" && state.personalTab === "instagram")) return;
   const rows = [...view.querySelectorAll(".system-table tbody tr, .planning-table tbody tr")];
   const cards = [...view.querySelectorAll(".registered-account-row, .account-card, .steam-account-card")];
   const records = rows.length ? rows : cards;
@@ -1200,9 +1378,7 @@ function buildAutoIndicators() {
   if (existing?.dataset.signature === signature) return;
   if (existing) existing.remove();
 
-  const text = records.map((item) => item.textContent || "").join(" ");
-  const currencyValues = [...text.matchAll(/R\$\s*-?[\d.]+,\d{2}/g)].map((match) => parseBRL(match[0])).filter((value) => Number.isFinite(value));
-  const totalMoney = currencyValues.reduce((sum, value) => sum + Math.max(0, value), 0);
+  const recordsWithMoney = records.filter((record) => /R\$\s*-?[\d.]+,\d{2}/.test(record.textContent || "")).length;
   const statusCounts = {};
   records.forEach((record) => {
     const rowLabels = new Set();
@@ -1215,9 +1391,7 @@ function buildAutoIndicators() {
     });
   });
   const monthGas = records.filter((record) => /gasolina|combustivel|abastec/i.test(record.textContent || "")).length;
-  const contextualIndicator = state.section === "finance"
-    ? ["Valores monetarios", String(currencyValues.length), "Campos em reais na tela"]
-    : ["Abastecimentos", String(monthGas), "Gasolina/combustivel na tela"];
+  const contextualIndicator = ["Abastecimentos", String(monthGas), "Gasolina/combustivel na tela"];
   const topStatus = Object.entries(statusCounts).sort((a, b) => b[1] - a[1])[0] || ["Sem status", 0];
   const bars = Object.entries(statusCounts).slice(0, 5);
   const maxBar = Math.max(1, ...bars.map(([, count]) => count));
@@ -1232,7 +1406,7 @@ function buildAutoIndicators() {
     ]),
     el("div", { class: "auto-indicator-grid" }, [
       el("article", {}, [el("span", {}, ["Registros"]), el("strong", {}, [String(records.length)]), el("small", {}, ["Na listagem atual"])]),
-      el("article", {}, [el("span", {}, ["Valor rastreado"]), el("strong", {}, [money(totalMoney)]), el("small", {}, ["Somando valores encontrados"])]),
+      el("article", {}, [el("span", {}, ["Registros com valores"]), el("strong", {}, [String(recordsWithMoney)]), el("small", {}, ["Itens que exibem valores em reais"])]),
       el("article", {}, [el("span", {}, ["Status principal"]), el("strong", {}, [topStatus[0]]), el("small", {}, [`${topStatus[1]} ocorrencia(s)`])]),
       el("article", {}, [
         el("span", {}, [contextualIndicator[0]]),
@@ -8853,7 +9027,8 @@ function financeCatalogTab(catalog) {
 
 function catalogForm(item) {
   const editing = state.financeCatalogEditing[item.key] || null;
-  const form = el("form", { class: "card" });
+  const startsOpen = item.key === "type" || Boolean(editing);
+  const form = el("form", { class: `card ${startsOpen ? "card-force-open" : "card-force-closed"}` });
   form.append(el("div", { class: "card-body form-grid" }, [
     el("div", { class: "field full" }, [
       el("h2", {}, [editing ? `Editar ${item.title.toLowerCase()}` : `Cadastrar ${item.title.toLowerCase()}`]),
@@ -8892,7 +9067,7 @@ function catalogForm(item) {
   return form;
 }
 function catalogList(item, records) {
-  return el("div", { class: "card" }, [el("div", { class: "card-body stack" }, [
+  return el("div", { class: "card card-force-closed" }, [el("div", { class: "card-body stack" }, [
     el("h2", {}, [item.title]),
     records.length ? el("div", { class: "stack" }, records.map((record) => el("div", { class: "user-row" }, [
       el("div", {}, [
@@ -9015,8 +9190,9 @@ function pocketKindLabel(kind) {
 
 function pocketForm(accounts) {
   const editing = state.editing?.resource === "finance-pocket" ? state.editing.record : {};
+  const pocketEditorActive = state.editing?.resource === "finance-pocket";
   const accountId = editing.account_id || accounts[0]?.id || "";
-  const form = el("form", { class: "card" });
+  const form = el("form", { class: `card ${pocketEditorActive ? "card-force-open" : "card-default-collapsed"}` });
   form.append(el("div", { class: "card-body form-grid" }, [
     el("div", { class: "field full" }, [
       el("h2", {}, [editing.id ? "Editar caixinha / investimento" : "Nova caixinha / investimento"]),
@@ -9114,7 +9290,7 @@ function accountForm() {
 }
 
 function accountList(accounts) {
-  return el("div", { class: "card" }, [el("div", { class: "card-body" }, [
+  return el("div", { class: "card card-default-collapsed" }, [el("div", { class: "card-body" }, [
     el("h2", {}, ["Contas cadastradas"]),
     accounts.length ? el("div", { class: "registered-account-list" }, accounts.map((account) => {
       const visual = bankVisuals[account.bank] || { logo: "", color: account.color || "#2dd4bf" };
@@ -19446,6 +19622,7 @@ const viewObserver = new MutationObserver(() => {
   scheduleEnhanceCollapsibleCards();
   scheduleAutoIndicators();
   enhanceTableActions(document.querySelector("#view"));
+  enhancePremiumSubnavs(document.querySelector("#view"));
 });
 viewObserver.observe(document.querySelector("#view"), { childList: true, subtree: true });
 
