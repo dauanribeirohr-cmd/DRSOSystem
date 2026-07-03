@@ -340,6 +340,7 @@ const sections = [
   { id: "personal", title: "Jornada Profissional", menuTitle: "Atributos Pessoais", icon: String.fromCodePoint(0x1F331), kicker: "Metas, estudos, carreira e evolucao" },
   { id: "googleCentral", title: "Central Google", icon: String.fromCodePoint(0x1F310), kicker: "Contas Google pessoais, seguranca e recuperacao" },
   { id: "gallery", title: "Galeria / Memorias", icon: "", iconClass: "gallery-css-icon gallery-icon-gallery", kicker: "Fotos, videos, albuns e lembrancas" },
+  { id: "collectibles", title: "Colecionaveis", icon: String.fromCodePoint(0x1F9E2), kicker: "Camisas, itens raros e colecoes pessoais" },
   { id: "documents", title: "Meus Documentos", icon: String.fromCodePoint(0x1F4C1), kicker: "Arquivos protegidos" },
   { id: "passwords", title: "Minhas Senhas", icon: String.fromCodePoint(0x1F510), kicker: "Cofre criptografado" },
   { id: "projects", title: "Meus Projetos", icon: String.fromCodePoint(0x1F680), kicker: "Planos, prazos e prioridade" },
@@ -356,8 +357,23 @@ const gamesMenuSectionIds = ["steam", "csgoSkins"];
 const financeMenuSectionIds = ["finance", "planning", "deliveries", "bets"];
 const financeCreditMenuItem = { id: "finance-credit-cards", section: "finance", title: "Cartoes de Credito", icon: String.fromCodePoint(0x1F4B3), financeTab: "creditCards" };
 const goodsServicesMenuSectionIds = ["codexManager", "googleCentral", "twofaVault", "subscriptions", "wishlist", "vendinha", "moto"];
-const personalMenuSectionIds = ["lifeKanban", "personal", "gallery", "documents", "passwords", "projects", "notes"];
+const personalMenuSectionIds = ["lifeKanban", "personal", "gallery", "documents", "passwords", "projects", "notes", "collectibles"];
 const navMenuStateKeys = ["financeMenuOpen", "goodsServicesMenuOpen", "gamesMenuOpen", "personalMenuOpen", "settingsMenuOpen"];
+
+const sectionRouteAliases = {
+  colecionaveis: "collectibles",
+  "colecionáveis": "collectibles",
+  collectible: "collectibles",
+  collections: "collectibles",
+  collection: "collectibles",
+  instagram: "personal"
+};
+
+function resolveSectionId(id) {
+  const raw = String(id || "").trim();
+  if (!raw) return "dashboard";
+  return sectionRouteAliases[raw] || sectionRouteAliases[raw.toLowerCase()] || raw;
+}
 
 const navigationConfig = [
   { id: "dashboard", target: "dashboard", label: "Dashboard", icon: "🏠", accent: "violet", active: ["dashboard"], tabs: [{ id: "home", label: "Inicio", icon: "🏠" }] },
@@ -403,7 +419,7 @@ const navigationConfig = [
     label: "Atributos",
     icon: "⭐",
     accent: "teal",
-    active: ["personal", "lifeKanban", "gallery", "documents", "passwords", "projects", "notes", "timeline", "modules", "database"],
+    active: ["personal", "lifeKanban", "gallery", "documents", "passwords", "projects", "notes", "collectibles", "timeline", "modules", "database"],
     tabs: [
       { id: "personal", label: "Jornada", icon: "⭐", target: "personal" },
       { id: "instagram", label: "Instagram", icon: "📸", target: "personal", stateKey: "personalTab" },
@@ -412,7 +428,8 @@ const navigationConfig = [
       { id: "documents", label: "Docs", icon: "📁", target: "documents" },
       { id: "passwords", label: "Senhas", icon: "🔑", target: "passwords" },
       { id: "projects", label: "Projetos", icon: "🚀", target: "projects" },
-      { id: "notes", label: "Notas", icon: "📝", target: "notes" }
+      { id: "notes", label: "Notas", icon: "📝", target: "notes" },
+      { id: "collectibles", label: "Colecionáveis", icon: "🧢", target: "collectibles" }
     ]
   },
   { id: "gamesGroup", target: "steam", label: "Games", icon: "🎮", accent: "indigo", active: ["steam", "csgoSkins"], tabs: [{ id: "overview", label: "Steam", icon: "🎮", target: "steam", stateKey: "steamTab" }, { id: "dashboard", label: "Skins", icon: "🧰", target: "csgoSkins", stateKey: "csgoSkinsTab" }] },
@@ -892,7 +909,7 @@ Object.assign(labels, {
   amount_brl: "Valor"
 });
 
-let state = { section: "dashboard", editing: null, records: [], biTab: "geral", biMonth: currentMonth(), financeTab: "dashboard", financeCreditTab: "dashboard", financeCreditMonth: currentMonth(), financeCreditCardFilter: "", financeCatalogEditing: {}, deliveryTab: "dashboard", deliveryPeriod: "month", deliveryMonth: currentMonth(), deliveryYear: today().slice(0, 4), deliveryPlatform: "", deliveryEditing: null, deliveryWithdrawalEditing: null, deliveryGoalEditing: null, betsTab: "dashboard", agendaMonth: currentMonth(), agendaFilters: { search: "", source: "", from: "", to: "", hasLocation: "", hasDescription: "", allDay: "" }, agendaFiltersOpen: false, agendaSyncing: false, agendaPage: 1, agendaSelectedDate: today(), steamTab: "overview", steamAccountView: "cards", steamInventoryAccount: "", steamInventoryView: "all", steamInventoryPage: 1, steamInventoryFilters: { name: "", float: "", value: "", account: "", game: "" }, steamFilters: { account: "", filter: "" }, csgoSkinsTab: "dashboard", csgoSkinsInventoryPage: 1, csgoSkinsFilters: { account: "", from: "", to: "", action: "", direction: "", walletType: "" }, motoTab: "dashboard", motoFilters: { motorcycle_id: "", month: "" }, motoVehicleFilter: "all", musicTab: "library", musicPlaylistId: "", musicPlaylistSearch: "", musicCurrentId: "", musicPlayerState: "stopped", musicLoop: false, musicPlaylistEditing: null, musicSongEditing: null, musicRadioEditing: null, musicRadioPanelsOpen: {}, drsoAiConversationId: "", drsoAiLoading: false, drsoAiPendingAction: null, drsoAiMemoryDraft: "", codexFilters: { search: "", plan: "", status: "", reset_type: "", phone_linked: "" }, codexEditing: null, googleFilters: { filter: "all", search: "" }, googleModalTab: "main", googleVisibleSecrets: {}, twofaTab: "steam", twofaToken: "", twofaFilters: { search: "", type: "", guard: "" }, twofaEditing: null, twofaTotpEditing: null, twofaCodeCache: {}, subscriptionMonth: currentMonth(), subscriptionFilters: { search: "", status: "", category: "", payment_method: "", payer: "", shared: "", worth_it: "" }, subscriptionEditing: null, subscriptionDetailId: "", wishlistFolder: "", wishlistAll: false, wishlistSelected: "", wishlistFilters: { search: "", status: "", prioridade: "", loja: "", comprado: "", min: "", max: "" }, vendinhaMonth: currentMonth(), vendinhaEstablishment: "", vendinhaPage: 1, vendinhaConsumptionEditing: null, vendinhaProductEditing: null, vendinhaStoreEditing: null, personalTab: "dashboard", personalFilters: { search: "", status: "", category: "", priority: "" }, instagramFilters: { search: "", filter: "all", type: "all" }, lifeKanbanFilters: { search: "", category: "", priority: "", status: "", due: "" }, lifeCollapsedColumns: { not_started: true, in_progress: true, done: true }, lifeProjectLogsOpen: false, lifeProjectLogsPage: 1, galleryFilters: { search: "", type: "", album: "", period: "", favorite: "" }, galleryAlbumTokens: {}, gallerySelected: {}, galleryUploadOpen: false, galleryAlbumOpen: false, galleryLatestOpen: false, galleryAlbumEditing: null, planningTab: "items", notesTab: "active", notesConfidentialUnlocked: false, settingsUnlocked: false, documentsTab: "all", documentsFilters: { id: "", name: "", content: "" }, passwordVaultToken: "", passwordFilters: { search: "" }, visiblePasswords: {}, dashboardCalendarMonth: currentMonth(), planningMonth: currentMonth(), planningPerson: "", planningView: "table", planningGroupBy: "due_date", planningSort: { key: "month", dir: "asc" }, planningFilters: { title: "", category: "", due_date: "", status: "" }, planningCollapsedGroups: {}, notesFilters: { id: "", title: "", content: "", tags: "" }, timelineFilters: { search: "", category: "", from: "", to: "" }, databaseToken: "", databaseOverview: null, databaseSelectedTable: "", databaseSearch: "", databaseQuery: "SELECT name FROM sqlite_master WHERE type = 'table'", databaseQueryResult: null };
+let state = { section: "dashboard", editing: null, records: [], biTab: "geral", biMonth: currentMonth(), financeTab: "dashboard", financeCreditTab: "dashboard", financeCreditMonth: currentMonth(), financeCreditCardFilter: "", financeCatalogEditing: {}, deliveryTab: "dashboard", deliveryPeriod: "month", deliveryMonth: currentMonth(), deliveryYear: today().slice(0, 4), deliveryPlatform: "", deliveryEditing: null, deliveryWithdrawalEditing: null, deliveryGoalEditing: null, betsTab: "dashboard", agendaMonth: currentMonth(), agendaFilters: { search: "", source: "", from: "", to: "", hasLocation: "", hasDescription: "", allDay: "" }, agendaFiltersOpen: false, agendaSyncing: false, agendaPage: 1, agendaSelectedDate: today(), steamTab: "overview", steamAccountView: "cards", steamInventoryAccount: "", steamInventoryView: "all", steamInventoryPage: 1, steamInventoryFilters: { name: "", float: "", value: "", account: "", game: "" }, steamFilters: { account: "", filter: "" }, csgoSkinsTab: "dashboard", csgoSkinsInventoryPage: 1, csgoSkinsFilters: { account: "", from: "", to: "", action: "", direction: "", walletType: "" }, motoTab: "dashboard", motoFilters: { motorcycle_id: "", month: "" }, motoVehicleFilter: "all", musicTab: "library", musicPlaylistId: "", musicPlaylistSearch: "", musicCurrentId: "", musicPlayerState: "stopped", musicLoop: false, musicPlaylistEditing: null, musicSongEditing: null, musicRadioEditing: null, musicRadioPanelsOpen: {}, drsoAiConversationId: "", drsoAiLoading: false, drsoAiPendingAction: null, drsoAiMemoryDraft: "", codexFilters: { search: "", plan: "", status: "", reset_type: "", phone_linked: "" }, codexEditing: null, googleFilters: { filter: "all", search: "" }, googleModalTab: "main", googleVisibleSecrets: {}, twofaTab: "steam", twofaToken: "", twofaFilters: { search: "", type: "", guard: "" }, twofaEditing: null, twofaTotpEditing: null, twofaCodeCache: {}, subscriptionMonth: currentMonth(), subscriptionFilters: { search: "", status: "", category: "", payment_method: "", payer: "", shared: "", worth_it: "" }, subscriptionEditing: null, subscriptionDetailId: "", wishlistFolder: "", wishlistAll: false, wishlistSelected: "", wishlistFilters: { search: "", status: "", prioridade: "", loja: "", comprado: "", min: "", max: "" }, vendinhaMonth: currentMonth(), vendinhaEstablishment: "", vendinhaPage: 1, vendinhaConsumptionEditing: null, vendinhaProductEditing: null, vendinhaStoreEditing: null, collectiblesTab: "shirts", collectiblesFilters: { search: "", category: "", season: "", type: "", status: "", favorite: "", sort: "recent" }, personalTab: "dashboard", personalFilters: { search: "", status: "", category: "", priority: "" }, instagramFilters: { search: "", filter: "all", type: "all" }, lifeKanbanFilters: { search: "", category: "", priority: "", status: "", due: "" }, lifeCollapsedColumns: { not_started: true, in_progress: true, done: true }, lifeProjectLogsOpen: false, lifeProjectLogsPage: 1, galleryFilters: { search: "", type: "", album: "", period: "", favorite: "" }, galleryAlbumTokens: {}, gallerySelected: {}, galleryUploadOpen: false, galleryAlbumOpen: false, galleryLatestOpen: false, galleryAlbumEditing: null, planningTab: "items", notesTab: "active", notesConfidentialUnlocked: false, settingsUnlocked: false, documentsTab: "all", documentsFilters: { id: "", name: "", content: "" }, passwordVaultToken: "", passwordFilters: { search: "" }, visiblePasswords: {}, dashboardCalendarMonth: currentMonth(), planningMonth: currentMonth(), planningPerson: "", planningView: "table", planningGroupBy: "due_date", planningSort: { key: "month", dir: "asc" }, planningFilters: { title: "", category: "", due_date: "", status: "" }, planningCollapsedGroups: {}, notesFilters: { id: "", title: "", content: "", tags: "" }, timelineFilters: { search: "", category: "", from: "", to: "" }, databaseToken: "", databaseOverview: null, databaseSelectedTable: "", databaseSearch: "", databaseQuery: "SELECT name FROM sqlite_master WHERE type = 'table'", databaseQueryResult: null };
 document.body.dataset.section = state.section;
 let musicPlayer = null;
 let musicPlayerApiPromise = null;
@@ -1223,6 +1240,8 @@ function premiumSubnavLabel(button) {
 
 let activePremiumSubnavMenu = null;
 let activePremiumSubnavAnchor = null;
+let activeContextDockMenu = null;
+let activeContextDockAnchor = null;
 
 function closePremiumSubnavMenu() {
   activePremiumSubnavMenu?.remove();
@@ -1364,6 +1383,114 @@ document.addEventListener("click", (event) => {
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") closePremiumSubnavMenu();
+});
+
+function closeContextDockMenu() {
+  activeContextDockMenu?.remove();
+  activeContextDockAnchor?.setAttribute("aria-expanded", "false");
+  activeContextDockMenu = null;
+  activeContextDockAnchor = null;
+}
+
+function contextDockLabel(button) {
+  return button.getAttribute("aria-label") || button.querySelector("strong")?.textContent?.trim() || button.textContent.trim();
+}
+
+function openContextDockMenu(anchor, sourceButtons) {
+  if (!sourceButtons.length) return;
+  const wasOpen = activeContextDockAnchor === anchor;
+  closeContextDockMenu();
+  if (wasOpen) return;
+  const menu = el("div", { class: "context-dock-more-menu", role: "menu", "aria-label": "Outras abas" }, sourceButtons.map((source) => {
+    const label = contextDockLabel(source);
+    const icon = source.querySelector(":scope > span")?.textContent || "•";
+    const isActive = source.classList.contains("active");
+    return el("button", {
+      class: `context-dock-more-item ${isActive ? "active" : ""}`.trim(),
+      type: "button",
+      role: "menuitem",
+      onclick: (event) => {
+        event.stopPropagation();
+        closeContextDockMenu();
+        source.click();
+      }
+    }, [
+      el("span", { "aria-hidden": "true" }, [icon]),
+      el("strong", {}, [label]),
+      isActive ? el("small", { "aria-hidden": "true" }, ["✓"]) : ""
+    ]);
+  }));
+  document.body.append(menu);
+  const anchorRect = anchor.getBoundingClientRect();
+  const menuRect = menu.getBoundingClientRect();
+  const gap = 10;
+  const viewportGap = 12;
+  const left = Math.max(viewportGap, Math.min(window.innerWidth - menuRect.width - viewportGap, anchorRect.right - menuRect.width));
+  const above = anchorRect.top - menuRect.height - gap;
+  const top = above >= viewportGap
+    ? above
+    : Math.min(window.innerHeight - menuRect.height - viewportGap, anchorRect.bottom + gap);
+  menu.style.left = `${Math.round(left)}px`;
+  menu.style.top = `${Math.round(top)}px`;
+  anchor.setAttribute("aria-expanded", "true");
+  activeContextDockMenu = menu;
+  activeContextDockAnchor = anchor;
+}
+
+function updateContextDockOverflow(dock, buttons, moreButton) {
+  if (!dock.isConnected) return;
+  if (activeContextDockAnchor === moreButton) closeContextDockMenu();
+  buttons.forEach((button) => button.classList.remove("context-dock-overflowed"));
+  moreButton.hidden = true;
+  moreButton.__overflowButtons = [];
+
+  const style = getComputedStyle(dock);
+  const gap = Number.parseFloat(style.columnGap || style.gap || "0") || 0;
+  const available = dock.clientWidth
+    - (Number.parseFloat(style.paddingLeft) || 0)
+    - (Number.parseFloat(style.paddingRight) || 0);
+  const widths = buttons.map((button) => Math.ceil(button.getBoundingClientRect().width));
+  const totalWidth = widths.reduce((sum, width) => sum + width, 0) + Math.max(0, buttons.length - 1) * gap;
+  if (totalWidth <= available) return;
+
+  moreButton.hidden = false;
+  const budget = Math.max(0, available - Math.ceil(moreButton.getBoundingClientRect().width) - gap);
+  const visibleIndexes = [];
+  let used = 0;
+  for (let index = 0; index < widths.length; index += 1) {
+    const width = widths[index];
+    const next = used + (visibleIndexes.length ? gap : 0) + width;
+    if (next > budget) break;
+    visibleIndexes.push(index);
+    used = next;
+  }
+
+  const activeIndex = buttons.findIndex((button) => button.classList.contains("active"));
+  if (activeIndex >= 0 && !visibleIndexes.includes(activeIndex)) {
+    const activeWidth = widths[activeIndex];
+    while (visibleIndexes.length && used + gap + activeWidth > budget) {
+      const removed = visibleIndexes.pop();
+      used -= widths[removed] + (visibleIndexes.length ? gap : 0);
+    }
+    visibleIndexes.push(activeIndex);
+  }
+
+  const visible = new Set(visibleIndexes);
+  const overflowButtons = buttons.filter((button, index) => {
+    const overflowed = !visible.has(index);
+    button.classList.toggle("context-dock-overflowed", overflowed);
+    return overflowed;
+  });
+  moreButton.__overflowButtons = overflowButtons;
+  moreButton.hidden = overflowButtons.length === 0;
+}
+
+document.addEventListener("click", (event) => {
+  if (!event.target.closest?.(".context-dock-more-menu, .context-dock-more")) closeContextDockMenu();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeContextDockMenu();
 });
 
 function buildAutoIndicators() {
@@ -1899,6 +2026,7 @@ function stopBiUsageTracker() {
 }
 
 async function setSection(id) {
+  id = resolveSectionId(id);
   const previousSection = state.section;
   if (previousSection === "timeCenter" && id !== "timeCenter") {
     clearInterval(TimeCenter.pageEnvironmentTimer);
@@ -1940,7 +2068,7 @@ async function setSection(id) {
     state.notesConfidentialUnlocked = false;
     if (state.notesTab === "confidential") state.notesTab = "active";
   }
-  const section = sections.find((item) => item.id === id);
+  const section = sections.find((item) => item.id === id) || sections.find((item) => item.id === "dashboard");
   const financeCreditActive = id === "finance" && state.financeTab === "creditCards";
   const sectionTitle = financeCreditActive ? financeCreditMenuItem.title : section.title;
   const sectionIcon = financeCreditActive ? financeCreditMenuItem.icon : section.icon;
@@ -2950,7 +3078,13 @@ function renderContextDock() {
   const module = activeNavigationModule();
   const items = module.tabs || [];
   dock.classList.toggle("hidden", !items.length);
-  dock.replaceChildren(...items.map((item) => el("button", {
+  closeContextDockMenu();
+  if (!items.length) {
+    dock.__contextDockResizeObserver?.disconnect();
+    dock.replaceChildren();
+    return;
+  }
+  const buttons = items.map((item) => el("button", {
     class: `context-dock-item ${isDockItemActive(item) ? "active" : ""}`.trim(),
     type: "button",
     title: item.label,
@@ -2959,7 +3093,29 @@ function renderContextDock() {
   }, [
     el("span", {}, [item.icon || "•"]),
     el("strong", {}, [item.label])
-  ])));
+  ]));
+  const moreButton = el("button", {
+    class: "context-dock-item context-dock-more",
+    type: "button",
+    title: "Mostrar mais abas",
+    "aria-label": "Mostrar mais abas",
+    "aria-haspopup": "menu",
+    "aria-expanded": "false",
+    hidden: true,
+    onclick: (event) => {
+      event.stopPropagation();
+      openContextDockMenu(event.currentTarget, event.currentTarget.__overflowButtons || []);
+    }
+  }, [
+    el("span", { "aria-hidden": "true" }, ["•••"]),
+    el("strong", {}, ["Mais"])
+  ]);
+  dock.replaceChildren(...buttons, moreButton);
+  const refreshOverflow = () => window.requestAnimationFrame(() => updateContextDockOverflow(dock, buttons, moreButton));
+  dock.__contextDockResizeObserver?.disconnect();
+  dock.__contextDockResizeObserver = new ResizeObserver(refreshOverflow);
+  dock.__contextDockResizeObserver.observe(dock);
+  refreshOverflow();
 }
 
 function stat(label, value, tone = "") {
@@ -10715,6 +10871,16 @@ async function renderWishlist() {
 
 async function renderCrud() {
   const config = configs[state.section];
+  if (!config) {
+    const section = sections.find((item) => item.id === state.section);
+    document.querySelector("#view").replaceChildren(el("section", { class: "card" }, [
+      el("div", { class: "card-body" }, [
+        el("h2", {}, ["Nao foi possivel abrir esta tela"]),
+        el("p", { class: "muted" }, [section ? "Esta tela ainda nao possui renderizacao cadastrada." : "Rota nao encontrada."])
+      ])
+    ]));
+    return;
+  }
   const params = new URLSearchParams();
   document.querySelectorAll("[data-filter]").forEach((field) => field.value && params.set(field.name, field.value));
   const records = await api(`${config.endpoint}${params.toString() ? `?${params}` : ""}`);
@@ -19543,6 +19709,292 @@ async function logout(options = {}) {
   await renderAuth();
 }
 
+function collectiblesQuery() {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(state.collectiblesFilters || {})) if (value) params.set(key, value);
+  return params.toString();
+}
+
+function collectiblesMoney(value) {
+  const number = Number(value || 0);
+  return number ? brlFormatter.format(number) : "Sem valor";
+}
+
+function collectiblesCloseModal() {
+  document.querySelector(".collectibles-modal-backdrop")?.remove();
+  document.body.classList.remove("modal-open");
+}
+
+function collectiblesPlaceholder() {
+  return el("div", { class: "collectible-shirt-placeholder", "aria-hidden": "true" }, ["👕"]);
+}
+
+function collectibleOptionRows(items = [], empty = "Todos") {
+  return [["", empty], ...items.map((item) => [item.id ?? item, item.name ?? item])];
+}
+
+function collectiblesHero(data) {
+  return el("section", { class: "collectibles-hero" }, [
+    el("div", {}, [el("span", { class: "eyebrow" }, ["Colecionáveis • Camisas"]), el("h2", {}, ["Coleção de Camisas"]), el("p", {}, ["Gerencie suas camisas de times, seleções e categorias personalizadas"])]),
+    el("div", { class: "collectibles-hero-actions" }, [
+      el("button", { class: "secondary-button", type: "button", onclick: () => openCollectibleCategoryModal() }, ["Adicionar categoria"]),
+      el("button", { class: "primary-button", type: "button", onclick: () => openCollectibleShirtModal({}, data) }, ["+ Adicionar camisa"])
+    ])
+  ]);
+}
+
+function collectiblesTabs() {
+  return el("nav", { class: "subnav premium-subnav collectibles-tabs", "aria-label": "Subabas de Colecionáveis" }, [
+    el("button", { class: "subnav-button premium-subnav-item active", type: "button" }, [
+      el("span", { class: "premium-subnav-icon" }, ["👕"]),
+      el("span", {}, ["Camisas"]),
+      el("small", {}, ["Times e seleções"])
+    ]),
+    el("button", { class: "subnav-button premium-subnav-item", type: "button", disabled: "disabled", title: "Disponível futuramente" }, [
+      el("span", { class: "premium-subnav-icon" }, ["＋"]),
+      el("span", {}, ["Novas coleções"]),
+      el("small", {}, ["Bonés, cards, tênis..."])
+    ])
+  ]);
+}
+
+function collectiblesStatCards(data) {
+  const summary = data.summary || {};
+  const cards = [
+    ["👕", "Total de camisas", summary.total_shirts || 0, "Cadastradas"],
+    ["🏷️", "Categorias", summary.total_categories || 0, "Organização"],
+    ["🌎", "Seleções", summary.selections || 0, "Nacionais"],
+    ["🇧🇷", "Times brasileiros", summary.brazilian_teams || 0, "Clubes do Brasil"],
+    ["🏆", "Times europeus", summary.european_teams || 0, "Clubes da Europa"],
+    ["❤️", "Favoritas", summary.favorites || 0, "Marcadas"],
+    ["💰", "Valor estimado", collectiblesMoney(summary.estimated_total), "Opcional"]
+  ];
+  return el("section", { class: "collectibles-stats" }, cards.map(([icon, label, value, hint]) => el("article", { class: "collectibles-stat-card" }, [
+    el("span", {}, [icon]),
+    el("div", {}, [el("strong", {}, [String(value)]), el("small", {}, [label]), el("em", {}, [hint])])
+  ])));
+}
+
+function collectiblesFilters(data) {
+  const filters = state.collectiblesFilters || {};
+  const change = (key, value) => {
+    state.collectiblesFilters = { ...state.collectiblesFilters, [key]: value };
+    renderCollectibles();
+  };
+  const filtersCard = el("section", { class: "card collectibles-filters" }, [el("div", { class: "card-body form-grid" }, [
+    el("div", { class: "field collectibles-search" }, [el("label", {}, ["Buscar"]), el("input", { value: filters.search || "", placeholder: "Time, seleção, jogador, marca...", oninput: (event) => change("search", event.currentTarget.value) })]),
+    fieldSelect("category", "Categoria", filters.category || "", collectibleOptionRows(data.categories || [], "Todas")),
+    fieldSelect("season", "Temporada", filters.season || "", [["", "Todas"], ...(data.options?.seasons || []).map((item) => [item, item])]),
+    fieldSelect("type", "Tipo", filters.type || "", [["", "Todos"], ...(data.options?.types || []).map((item) => [item, item])]),
+    fieldSelect("status", "Status", filters.status || "", [["", "Todos"], ...(data.options?.statuses || []).map((item) => [item, item])]),
+    fieldSelect("favorite", "Favorito", filters.favorite || "", [["", "Todos"], ["sim", "Somente favoritas"], ["nao", "Não favoritas"]]),
+    fieldSelect("sort", "Ordenar", filters.sort || "recent", [["recent", "Mais recentes"], ["oldest", "Mais antigas"], ["name", "Nome A-Z"], ["category", "Categoria"], ["season", "Temporada"]]),
+    el("button", { class: "secondary-button", type: "button", onclick: () => { state.collectiblesFilters = { search: "", category: "", season: "", type: "", status: "", favorite: "", sort: "recent" }; renderCollectibles(); } }, ["Limpar filtros"])
+  ])]);
+  filtersCard.querySelectorAll("select").forEach((select) => select.addEventListener("change", (event) => change(event.currentTarget.name, event.currentTarget.value)));
+  return filtersCard;
+}
+
+function collectibleShirtCard(item, data) {
+  return el("article", { class: "collectible-shirt-card", ondblclick: () => openCollectibleShirtDetails(item, data) }, [
+    el("button", { class: `collectible-favorite ${Number(item.favorite || 0) ? "active" : ""}`, type: "button", title: "Favoritar", onclick: async (event) => {
+      event.stopPropagation();
+      await api(`/api/collectibles/shirts/${item.id}`, { method: "PUT", body: JSON.stringify({ ...item, favorite: Number(item.favorite || 0) ? 0 : 1 }) });
+      renderCollectibles();
+    } }, [Number(item.favorite || 0) ? "♥" : "♡"]),
+    el("span", { class: "collectible-shirt-tag", style: `--tag:${item.category_color || "#2563eb"}` }, [item.category_name || "Sem categoria"]),
+    el("button", { class: "collectible-shirt-image", type: "button", onclick: () => openCollectibleShirtDetails(item, data) }, [
+      item.image_url ? el("img", { src: item.image_url, alt: `Camisa ${item.team_name}`, loading: "lazy", onerror: (event) => event.currentTarget.replaceWith(collectiblesPlaceholder()) }) : collectiblesPlaceholder()
+    ]),
+    el("div", { class: "collectible-shirt-info" }, [
+      el("strong", {}, [item.team_name]),
+      el("small", {}, [`${item.season} • ${item.shirt_type}`]),
+      item.player_name || item.shirt_number ? el("span", {}, [`${item.player_name || "Jogador"}${item.shirt_number ? ` #${item.shirt_number}` : ""}`]) : "",
+      el("div", { class: "collectible-shirt-meta" }, [el("span", {}, [item.status || "Tenho"]), item.storage_location ? el("span", {}, [`📦 ${item.storage_location}`]) : "", item.estimated_value ? el("span", {}, [collectiblesMoney(item.estimated_value)]) : ""])
+    ]),
+    el("div", { class: "collectible-card-actions action-cell" }, [
+      el("button", { type: "button", onclick: () => openCollectibleShirtDetails(item, data) }, ["Ver detalhes"]),
+      el("button", { type: "button", onclick: () => openCollectibleShirtModal(item, data) }, ["Editar"]),
+      el("button", { type: "button", onclick: () => deleteCollectibleShirt(item) }, ["Excluir"])
+    ])
+  ]);
+}
+
+function collectiblesGrid(data) {
+  const shirts = data.shirts || [];
+  if (!shirts.length) return el("section", { class: "collectibles-empty card" }, [el("div", { class: "card-body empty" }, [
+    el("span", {}, ["👕"]), el("h3", {}, ["Nenhuma camisa encontrada"]), el("p", { class: "muted" }, ["Cadastre sua primeira camisa ou limpe os filtros atuais."]), el("button", { class: "primary-button", type: "button", onclick: () => openCollectibleShirtModal({}, data) }, ["Adicionar camisa"])
+  ])]);
+  return el("section", { class: "collectibles-shirts-grid" }, shirts.map((item) => collectibleShirtCard(item, data)));
+}
+
+function collectiblesSummaryPanel(data) {
+  const summary = data.summary || {};
+  const total = Math.max(1, Number(summary.total_shirts || 0));
+  const barList = (entries) => entries.length ? entries.map(([label, value]) => el("div", { class: "collectible-mini-bar" }, [el("span", {}, [label]), el("strong", {}, [String(value)]), el("i", { style: `width:${Math.min(100, (Number(value || 0) / total) * 100)}%` })])) : [el("p", { class: "muted" }, ["Sem dados ainda."])];
+  return el("aside", { class: "collectibles-side-panel" }, [
+    el("section", { class: "card" }, [el("div", { class: "card-body stack" }, [el("h3", {}, ["Resumo visual"]), el("h4", {}, ["Por categoria"]), ...barList(Object.entries(summary.by_category || {})), el("h4", {}, ["Por status"]), ...barList(Object.entries(summary.by_status || {}))])]),
+    el("section", { class: "card" }, [el("div", { class: "card-body stack" }, [
+      el("h3", {}, ["Últimas adições"]),
+      ...(summary.latest || []).length ? summary.latest.map((item) => el("button", { class: "collectibles-mini-shirt", type: "button", onclick: () => openCollectibleShirtDetails(item, data) }, [item.image_url ? el("img", { src: item.image_url, alt: item.team_name }) : el("span", {}, ["👕"]), el("strong", {}, [item.team_name]), el("small", {}, [item.season])])) : [el("p", { class: "muted" }, ["Nada cadastrado ainda."])]
+    ])])
+  ]);
+}
+
+function collectiblesGoals(data) {
+  const goals = data.goals || [];
+  return el("section", { class: "card collectibles-goals" }, [el("div", { class: "card-body stack" }, [
+    el("div", { class: "section-row" }, [el("div", {}, [el("h3", {}, ["Metas da coleção"]), el("p", { class: "muted" }, ["Acompanhe objetivos como chegar a 50 camisas ou completar uma categoria."])]), el("button", { class: "secondary-button", type: "button", onclick: () => openCollectibleGoalModal() }, ["+ Criar meta"])]),
+    goals.length ? el("div", { class: "collectibles-goal-list" }, goals.map((goal) => {
+      const target = Number(goal.target_quantity || 0);
+      const progress = Number(goal.current_progress || 0);
+      const percent = target ? Math.min(100, Math.round((progress / target) * 100)) : Number(goal.status === "concluída" ? 100 : 0);
+      return el("article", { class: `collectible-goal ${goal.status === "concluída" ? "done" : ""}` }, [
+        el("div", {}, [el("strong", {}, [goal.title]), el("small", {}, [goal.description || goal.status])]),
+        target ? el("div", { class: "collectible-goal-progress" }, [el("i", { style: `width:${percent}%` }), el("span", {}, [`${progress}/${target}`])]) : el("span", { class: "pill" }, [goal.status]),
+        el("div", { class: "collectible-goal-actions" }, [
+          el("button", { type: "button", onclick: () => openCollectibleGoalModal(goal) }, ["Editar"]),
+          goal.status !== "concluída" ? el("button", { type: "button", onclick: async () => { await api(`/api/collectibles/goals/${goal.id}`, { method: "PUT", body: JSON.stringify({ ...goal, status: "concluída", current_progress: goal.target_quantity || goal.current_progress || 1 }) }); renderCollectibles(); } }, ["Concluir"]) : "",
+          el("button", { type: "button", onclick: async () => { if (!confirm("Excluir esta meta?")) return; await api(`/api/collectibles/goals/${goal.id}`, { method: "DELETE" }); renderCollectibles(); } }, ["Excluir"])
+        ])
+      ]);
+    })) : el("p", { class: "muted" }, ["Nenhuma meta criada ainda."])
+  ])]);
+}
+
+function openCollectibleCategoryModal(category = {}) {
+  collectiblesCloseModal();
+  const form = el("form", { class: "confirm-modal collectibles-modal", onclick: (event) => event.stopPropagation() }, [
+    el("div", { class: "modal-head" }, [el("h3", {}, [category.id ? "Editar categoria" : "Adicionar categoria"]), el("button", { type: "button", class: "icon-button", onclick: collectiblesCloseModal }, ["×"])]),
+    el("div", { class: "form-grid" }, [fieldInput("name", "Nome", category.name || "", "Times Sul-Americanos"), fieldInput("icon", "Ícone", category.icon || "👕", "👕"), fieldInput("color", "Cor", category.color || "#2563eb", "#2563eb", "color"), fieldTextarea("description", "Descrição", category.description || "")]),
+    el("div", { class: "confirm-actions" }, [el("button", { class: "secondary-button", type: "button", onclick: collectiblesCloseModal }, ["Cancelar"]), category.id ? el("button", { class: "danger-button", type: "button", onclick: async () => deleteCollectibleCategory(category) }, ["Excluir"]) : "", el("button", { class: "primary-button", type: "submit" }, ["Salvar"])])
+  ]);
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      await api(category.id ? `/api/collectibles/categories/${category.id}` : "/api/collectibles/categories", { method: category.id ? "PUT" : "POST", body: JSON.stringify(Object.fromEntries(new FormData(form).entries())) });
+      collectiblesCloseModal();
+      renderCollectibles();
+    } catch (error) { toast(error.message); }
+  });
+  document.body.append(el("div", { class: "confirm-modal-backdrop collectibles-modal-backdrop", onclick: collectiblesCloseModal }, [form]));
+  document.body.classList.add("modal-open");
+}
+
+async function deleteCollectibleCategory(category) {
+  if (!confirm(`Excluir a categoria "${category.name}"?`)) return;
+  try {
+    await api(`/api/collectibles/categories/${category.id}`, { method: "DELETE" });
+  } catch (error) {
+    if (!confirm(`${error.message}\n\nDeseja excluir mesmo assim?`)) return;
+    await api(`/api/collectibles/categories/${category.id}?force=1`, { method: "DELETE" });
+  }
+  collectiblesCloseModal();
+  renderCollectibles();
+}
+
+function openCollectibleShirtModal(item = {}, data = {}) {
+  collectiblesCloseModal();
+  const categories = data.categories || [];
+  const form = el("form", { class: "confirm-modal collectibles-modal collectibles-shirt-modal", onclick: (event) => event.stopPropagation() }, [
+    el("div", { class: "modal-head" }, [el("h3", {}, [item.id ? "Editar camisa" : "Adicionar camisa"]), el("button", { type: "button", class: "icon-button", onclick: collectiblesCloseModal }, ["×"])]),
+    el("div", { class: "form-grid" }, [
+      fieldInput("team_name", "Time ou seleção *", item.team_name || "", "Flamengo, Brasil, Barcelona"),
+      fieldSelect("category_id", "Categoria *", item.category_id || categories[0]?.id || "", categories.map((category) => [category.id, category.name])),
+      fieldInput("season", "Temporada/Ano *", item.season || "", "2019, 2009/10"),
+      fieldSelect("shirt_type", "Tipo da camisa *", item.shirt_type || "Titular", (data.options?.types || ["Titular", "Reserva", "Terceira camisa", "Goleiro", "Treino", "Edição especial", "Retrô", "Outra"]).map((type) => [type, type])),
+      fieldInput("image_url", "URL da imagem", item.image_url || "", "https://..."),
+      fieldInput("player_name", "Jogador", item.player_name || "", "Ronaldo"),
+      fieldInput("shirt_number", "Número", item.shirt_number || "", "10"),
+      fieldInput("brand", "Marca", item.brand || "", "Nike, Adidas..."),
+      fieldInput("size", "Tamanho", item.size || "", "M, G, GG..."),
+      fieldSelect("status", "Status", item.status || "Tenho", (data.options?.statuses || ["Tenho", "Quero comprar", "Vendida/trocada", "Emprestada", "Rara", "Favorita"]).map((status) => [status, status])),
+      fieldInput("storage_location", "Local guardado", item.storage_location || "", "Guarda-roupa 1"),
+      fieldInput("purchase_date", "Data da compra", item.purchase_date || "", "", "date"),
+      fieldInput("estimated_value", "Valor estimado (opcional)", item.estimated_value ? formatBRLInput(item.estimated_value) : "", "R$ 0,00"),
+      el("label", { class: "field collectible-check" }, [el("span", {}, ["Favorita"]), el("input", { name: "favorite", type: "checkbox", value: "1", checked: Number(item.favorite || 0) ? "checked" : undefined })]),
+      fieldTextarea("notes", "Observações", item.notes || "")
+    ]),
+    el("div", { class: "confirm-actions" }, [el("button", { class: "secondary-button", type: "button", onclick: collectiblesCloseModal }, ["Cancelar"]), el("button", { class: "primary-button", type: "submit" }, ["Salvar camisa"])])
+  ]);
+  const moneyInput = form.querySelector('[name="estimated_value"]');
+  if (moneyInput) attachBRLMask(moneyInput, item.estimated_value || 0);
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const payload = Object.fromEntries(new FormData(form).entries());
+    payload.favorite = form.querySelector('[name="favorite"]')?.checked ? 1 : 0;
+    payload.estimated_value = payload.estimated_value ? parseBRL(payload.estimated_value) : "";
+    try {
+      await api(item.id ? `/api/collectibles/shirts/${item.id}` : "/api/collectibles/shirts", { method: item.id ? "PUT" : "POST", body: JSON.stringify(payload) });
+      collectiblesCloseModal();
+      renderCollectibles();
+    } catch (error) { toast(error.message); }
+  });
+  document.body.append(el("div", { class: "confirm-modal-backdrop collectibles-modal-backdrop", onclick: collectiblesCloseModal }, [form]));
+  document.body.classList.add("modal-open");
+}
+
+function openCollectibleShirtDetails(item, data = {}) {
+  collectiblesCloseModal();
+  const rows = [["Categoria", item.category_name], ["Temporada", item.season], ["Tipo", item.shirt_type], ["Status", item.status], ["Jogador", item.player_name], ["Número", item.shirt_number], ["Marca", item.brand], ["Tamanho", item.size], ["Local guardado", item.storage_location], ["Data da compra", item.purchase_date ? formatDateBR(item.purchase_date) : ""], ["Valor", item.estimated_value ? collectiblesMoney(item.estimated_value) : ""]].filter(([, value]) => value);
+  const modal = el("article", { class: "confirm-modal collectibles-detail-modal", onclick: (event) => event.stopPropagation() }, [
+    el("button", { class: "notification-modal-close", type: "button", onclick: collectiblesCloseModal }, ["×"]),
+    el("div", { class: "collectibles-detail-grid" }, [
+      el("div", { class: "collectibles-detail-image" }, [item.image_url ? el("img", { src: item.image_url, alt: item.team_name }) : collectiblesPlaceholder()]),
+      el("div", { class: "stack" }, [el("span", { class: "eyebrow" }, [item.category_name || "Camisa"]), el("h2", {}, [item.team_name]), el("div", { class: "collectibles-detail-list" }, rows.map(([label, value]) => el("span", {}, [label, el("strong", {}, [String(value)])]))), item.notes ? el("p", { class: "muted" }, [item.notes]) : "", el("div", { class: "confirm-actions" }, [el("button", { class: "secondary-button", type: "button", onclick: () => openCollectibleShirtModal(item, data) }, ["Editar"]), el("button", { class: "danger-button", type: "button", onclick: () => deleteCollectibleShirt(item) }, ["Excluir"])])])
+    ])
+  ]);
+  document.body.append(el("div", { class: "confirm-modal-backdrop collectibles-modal-backdrop", onclick: collectiblesCloseModal }, [modal]));
+  document.body.classList.add("modal-open");
+}
+
+async function deleteCollectibleShirt(item) {
+  if (!confirm(`Excluir a camisa "${item.team_name}"?`)) return;
+  await api(`/api/collectibles/shirts/${item.id}`, { method: "DELETE" });
+  collectiblesCloseModal();
+  renderCollectibles();
+}
+
+function openCollectibleGoalModal(goal = {}) {
+  collectiblesCloseModal();
+  const form = el("form", { class: "confirm-modal collectibles-modal", onclick: (event) => event.stopPropagation() }, [
+    el("div", { class: "modal-head" }, [el("h3", {}, [goal.id ? "Editar meta" : "Criar meta"]), el("button", { type: "button", class: "icon-button", onclick: collectiblesCloseModal }, ["×"])]),
+    el("div", { class: "form-grid" }, [fieldInput("title", "Título *", goal.title || "", "Chegar a 50 camisas"), fieldInput("target_quantity", "Quantidade alvo", goal.target_quantity || "", "50", "number"), fieldInput("current_progress", "Progresso atual", goal.current_progress || 0, "0", "number"), fieldSelect("status", "Status", goal.status || "em andamento", [["em andamento", "Em andamento"], ["concluída", "Concluída"], ["pausada", "Pausada"]]), fieldTextarea("description", "Descrição", goal.description || "")]),
+    el("div", { class: "confirm-actions" }, [el("button", { class: "secondary-button", type: "button", onclick: collectiblesCloseModal }, ["Cancelar"]), el("button", { class: "primary-button", type: "submit" }, ["Salvar meta"])])
+  ]);
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      await api(goal.id ? `/api/collectibles/goals/${goal.id}` : "/api/collectibles/goals", { method: goal.id ? "PUT" : "POST", body: JSON.stringify(Object.fromEntries(new FormData(form).entries())) });
+      collectiblesCloseModal();
+      renderCollectibles();
+    } catch (error) { toast(error.message); }
+  });
+  document.body.append(el("div", { class: "confirm-modal-backdrop collectibles-modal-backdrop", onclick: collectiblesCloseModal }, [form]));
+  document.body.classList.add("modal-open");
+}
+
+async function renderCollectibles() {
+  const view = document.querySelector("#view");
+  view.replaceChildren(el("div", { class: "loading" }, ["Carregando Colecionáveis..."]));
+  const data = await api(`/api/collectibles?${collectiblesQuery()}`);
+  view.replaceChildren(el("div", { class: "collectibles-page stack" }, [
+    collectiblesTabs(),
+    collectiblesHero(data),
+    collectiblesStatCards(data),
+    collectiblesFilters(data),
+    el("div", { class: "collectibles-main-grid" }, [
+      el("div", { class: "stack" }, [
+        el("section", { class: "collectibles-category-strip" }, (data.categories || []).map((category) => el("button", { type: "button", style: `--cat:${category.color || "#2563eb"}`, onclick: () => openCollectibleCategoryModal(category) }, [el("span", {}, [category.icon || "👕"]), el("strong", {}, [category.name]), el("small", {}, [`${category.shirt_count || 0} camisa(s)`])]))),
+        collectiblesGrid(data),
+        collectiblesGoals(data)
+      ]),
+      collectiblesSummaryPanel(data)
+    ])
+  ]));
+  enhanceTableActions(view);
+}
+
 async function render() {
   if (state.section === "dashboard") return dashboard();
   if (state.section === "timeCenter") return renderTimeCenterPage();
@@ -19564,6 +20016,7 @@ async function render() {
     if (state.section === "moto") return renderMoto();
     if (state.section === "lifeKanban") return renderLifeKanban();
     if (state.section === "personal") return renderPersonal();
+    if (state.section === "collectibles") return renderCollectibles();
     if (state.section === "gallery") return renderGallery();
     if (state.section === "planning") return renderPlanning();
   if (state.section === "notes") return renderNotes();

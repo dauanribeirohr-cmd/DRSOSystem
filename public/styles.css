@@ -24205,6 +24205,117 @@ body.theme-dark:not(.locked) :is(.nav-icon, .dashboard-os-icon, .quick-access > 
     0 10px 22px rgba(0, 0, 0, .24) !important;
 }
 
+body:not(.locked) .context-dock {
+  overflow: visible !important;
+  flex-wrap: nowrap;
+}
+
+body:not(.locked) .context-dock-item {
+  flex: 0 0 auto;
+}
+
+body:not(.locked) .context-dock-item[hidden],
+body:not(.locked) .context-dock-overflowed {
+  display: none !important;
+}
+
+body:not(.locked) .context-dock-more {
+  min-width: 66px;
+}
+
+body:not(.locked) .context-dock-more span {
+  letter-spacing: -2px;
+  font-size: 17px !important;
+}
+
+body:not(.locked) .context-dock-more-menu {
+  position: fixed;
+  z-index: 10080;
+  width: min(240px, calc(100vw - 24px));
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--border-soft, #dbe4ee) 88%, transparent);
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, .96), rgba(245, 249, 255, .92));
+  box-shadow: 0 24px 60px rgba(15, 23, 42, .20);
+  backdrop-filter: blur(18px);
+}
+
+body:not(.locked) .context-dock-more-item {
+  min-height: 44px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 13px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  background: transparent;
+  color: var(--text-primary, #0f172a);
+  text-align: left;
+  cursor: pointer;
+}
+
+body:not(.locked) .context-dock-more-item span {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255, 255, 255, .96), rgba(255, 255, 255, .48) 28%, transparent 46%),
+    linear-gradient(145deg, #ffffff, #eef6ff);
+  border: 1px solid rgba(148, 163, 184, .22);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, .08);
+}
+
+body:not(.locked) .context-dock-more-item strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+body:not(.locked) .context-dock-more-item small {
+  color: var(--app-accent, #2563eb);
+  font-weight: 900;
+}
+
+body:not(.locked) .context-dock-more-item:hover,
+body:not(.locked) .context-dock-more-item.active {
+  background: color-mix(in srgb, var(--app-accent, #2563eb) 12%, transparent);
+  color: var(--app-accent, #2563eb);
+}
+
+html[data-theme="dark"] body:not(.locked) .context-dock-more-menu,
+body[data-theme="dark"]:not(.locked) .context-dock-more-menu,
+body.theme-dark:not(.locked) .context-dock-more-menu {
+  background:
+    linear-gradient(145deg, rgba(15, 23, 42, .96), rgba(2, 6, 23, .92));
+  border-color: rgba(148, 163, 184, .22);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .42);
+}
+
+html[data-theme="dark"] body:not(.locked) .context-dock-more-item,
+body[data-theme="dark"]:not(.locked) .context-dock-more-item,
+body.theme-dark:not(.locked) .context-dock-more-item {
+  color: rgba(226, 232, 240, .94);
+}
+
+html[data-theme="dark"] body:not(.locked) .context-dock-more-item span,
+body[data-theme="dark"]:not(.locked) .context-dock-more-item span,
+body.theme-dark:not(.locked) .context-dock-more-item span {
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255, 255, 255, .24), rgba(255, 255, 255, .08) 28%, transparent 46%),
+    linear-gradient(145deg, rgba(30, 41, 59, .96), rgba(15, 23, 42, .92));
+  border-color: rgba(148, 163, 184, .22);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, .24);
+}
+
 /* Buttons 2.0: polished global button system. */
 body:not(.locked) {
   --button-radius-2: 14px;
@@ -32058,6 +32169,424 @@ body:not(.locked) .vendinha-consumption-row:has(.action-cell) {
 body:not(.locked) .context-actions-open {
   outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
   outline-offset: -2px;
+}
+
+body:not(.locked) .collectibles-page {
+  --collectible-blue: #2563eb;
+  --collectible-green: #22c55e;
+  --collectible-purple: #7c3aed;
+}
+
+body:not(.locked) .collectibles-hero,
+body:not(.locked) .collectibles-stat-card,
+body:not(.locked) .collectible-shirt-card,
+body:not(.locked) .collectibles-side-panel .card,
+body:not(.locked) .collectibles-goals,
+body:not(.locked) .collectibles-filters,
+body:not(.locked) .collectibles-empty,
+body:not(.locked) .collectibles-modal,
+body:not(.locked) .collectibles-detail-modal {
+  border: 1px solid var(--border-soft);
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--app-accent, #2563eb) 14%, transparent), transparent 36%),
+    var(--surface-solid, #fff);
+  box-shadow: var(--shadow-card, 0 18px 45px rgba(15, 23, 42, .08));
+}
+
+body:not(.locked) .collectibles-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  padding: 26px;
+  border-radius: 24px;
+}
+
+body:not(.locked) .collectibles-hero h2 {
+  margin: 6px 0;
+  font-size: clamp(1.8rem, 3vw, 2.7rem);
+}
+
+body:not(.locked) .collectibles-hero p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+body:not(.locked) .collectibles-hero-actions,
+body:not(.locked) .collectible-goal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+body:not(.locked) .collectibles-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+}
+
+body:not(.locked) .collectibles-stat-card {
+  min-height: 104px;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-radius: 20px;
+}
+
+body:not(.locked) .collectibles-stat-card > span {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--app-accent, #2563eb) 16%, transparent);
+  font-size: 1.35rem;
+}
+
+body:not(.locked) .collectibles-stat-card strong {
+  display: block;
+  font-size: 1.45rem;
+}
+
+body:not(.locked) .collectibles-stat-card small,
+body:not(.locked) .collectibles-stat-card em {
+  display: block;
+  color: var(--text-secondary);
+  font-style: normal;
+}
+
+body:not(.locked) .collectibles-filters .card-body {
+  align-items: end;
+}
+
+body:not(.locked) .collectibles-search {
+  grid-column: span 2;
+}
+
+body:not(.locked) .collectibles-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 18px;
+  align-items: start;
+}
+
+body:not(.locked) .collectibles-category-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+body:not(.locked) .collectibles-category-strip button {
+  min-width: 170px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--cat, var(--app-accent)) 28%, var(--border-soft));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--cat, var(--app-accent)) 10%, transparent);
+  color: var(--text-primary);
+  text-align: left;
+}
+
+body:not(.locked) .collectibles-category-strip span {
+  grid-row: span 2;
+  font-size: 1.25rem;
+}
+
+body:not(.locked) .collectibles-category-strip small {
+  color: var(--text-secondary);
+}
+
+body:not(.locked) .collectibles-shirts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 16px;
+}
+
+body:not(.locked) .collectible-shirt-card {
+  position: relative;
+  overflow: hidden;
+  padding: 14px;
+  border-radius: 22px;
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+
+body:not(.locked) .collectible-shirt-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--app-accent, #2563eb) 34%, var(--border-soft));
+}
+
+body:not(.locked) .collectible-shirt-image {
+  width: 100%;
+  height: 205px;
+  border: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% 8%, rgba(37, 99, 235, .16), transparent 48%),
+    color-mix(in srgb, var(--surface) 84%, transparent);
+}
+
+body:not(.locked) .collectible-shirt-image img,
+body:not(.locked) .collectibles-detail-image img,
+body:not(.locked) .collectibles-mini-shirt img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+body:not(.locked) .collectible-shirt-placeholder {
+  width: 96px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  border-radius: 28px;
+  background: color-mix(in srgb, var(--app-accent, #2563eb) 14%, transparent);
+  font-size: 3rem;
+}
+
+body:not(.locked) .collectible-favorite,
+body:not(.locked) .collectible-shirt-tag {
+  position: absolute;
+  top: 14px;
+  z-index: 2;
+}
+
+body:not(.locked) .collectible-favorite {
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-solid) 82%, transparent);
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+}
+
+body:not(.locked) .collectible-favorite.active {
+  color: #ef4444;
+}
+
+body:not(.locked) .collectible-shirt-tag {
+  left: 14px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tag) 86%, #111827 14%);
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+body:not(.locked) .collectible-shirt-info {
+  padding: 13px 2px 4px;
+}
+
+body:not(.locked) .collectible-shirt-info strong {
+  display: block;
+  font-size: 1.05rem;
+}
+
+body:not(.locked) .collectible-shirt-info small,
+body:not(.locked) .collectible-shirt-info > span {
+  display: block;
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+
+body:not(.locked) .collectible-shirt-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+body:not(.locked) .collectible-shirt-meta span {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--app-accent, #2563eb) 10%, transparent);
+  color: var(--text-secondary);
+  font-size: .72rem;
+  font-weight: 700;
+}
+
+body:not(.locked) .collectible-card-actions {
+  display: none;
+}
+
+body:not(.locked) .collectibles-side-panel {
+  display: grid;
+  gap: 14px;
+}
+
+body:not(.locked) .collectible-mini-bar {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  padding-bottom: 10px;
+  color: var(--text-secondary);
+}
+
+body:not(.locked) .collectible-mini-bar i {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 5px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2563eb, #22c55e);
+}
+
+body:not(.locked) .collectibles-mini-shirt {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 8px 10px;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+body:not(.locked) .collectibles-mini-shirt img,
+body:not(.locked) .collectibles-mini-shirt > span {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--app-accent, #2563eb) 12%, transparent);
+}
+
+body:not(.locked) .collectibles-mini-shirt small {
+  grid-column: 2;
+  color: var(--text-secondary);
+}
+
+body:not(.locked) .collectibles-goal-list {
+  display: grid;
+  gap: 10px;
+}
+
+body:not(.locked) .collectible-goal {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 240px) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+}
+
+body:not(.locked) .collectible-goal.done {
+  opacity: .78;
+}
+
+body:not(.locked) .collectible-goal-progress {
+  position: relative;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border-soft) 70%, transparent);
+}
+
+body:not(.locked) .collectible-goal-progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2563eb, #22c55e);
+}
+
+body:not(.locked) .collectible-goal-progress span {
+  position: absolute;
+  inset: -20px 0 auto;
+  color: var(--text-secondary);
+  font-size: .72rem;
+}
+
+body:not(.locked) .collectibles-modal {
+  width: min(860px, calc(100vw - 28px));
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  padding: 22px;
+  border-radius: 22px;
+}
+
+body:not(.locked) .collectibles-detail-modal {
+  width: min(920px, calc(100vw - 28px));
+  padding: 22px;
+  border-radius: 24px;
+}
+
+body:not(.locked) .collectibles-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 360px) 1fr;
+  gap: 22px;
+  align-items: center;
+}
+
+body:not(.locked) .collectibles-detail-image {
+  min-height: 360px;
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--app-accent, #2563eb) 10%, transparent);
+}
+
+body:not(.locked) .collectibles-detail-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+body:not(.locked) .collectibles-detail-list span {
+  padding: 10px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  color: var(--text-secondary);
+}
+
+body:not(.locked) .collectibles-detail-list strong {
+  display: block;
+  color: var(--text-primary);
+}
+
+body:not(.locked) .collectible-check {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+@media (max-width: 1180px) {
+  body:not(.locked) .collectibles-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  body:not(.locked) .collectibles-hero,
+  body:not(.locked) .collectible-goal,
+  body:not(.locked) .collectibles-detail-grid {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  body:not(.locked) .collectibles-hero-actions,
+  body:not(.locked) .collectible-goal-actions {
+    width: 100%;
+  }
+
+  body:not(.locked) .collectibles-search,
+  body:not(.locked) .collectibles-detail-list {
+    grid-column: auto;
+    grid-template-columns: 1fr;
+  }
 }
 
 @keyframes actionMenuIn {

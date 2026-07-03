@@ -1251,6 +1251,50 @@ CREATE TABLE IF NOT EXISTS historico_precos_wishlist (
   loja TEXT,
   criado_em TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS collectible_categories (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  color TEXT NOT NULL DEFAULT '#2563eb',
+  icon TEXT NOT NULL DEFAULT '👕',
+  is_default INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, name)
+);
+CREATE TABLE IF NOT EXISTS collectible_shirts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  category_id INTEGER REFERENCES collectible_categories(id) ON DELETE SET NULL,
+  team_name TEXT NOT NULL,
+  season TEXT NOT NULL,
+  shirt_type TEXT NOT NULL,
+  image_url TEXT,
+  player_name TEXT,
+  shirt_number TEXT,
+  brand TEXT,
+  size TEXT,
+  status TEXT NOT NULL DEFAULT 'Tenho',
+  notes TEXT,
+  storage_location TEXT,
+  purchase_date TEXT,
+  estimated_value REAL,
+  favorite INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS collectible_goals (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  target_quantity REAL,
+  current_progress REAL NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'em andamento',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 `;
 db.exec(schema);
 for (const statement of [
@@ -1424,6 +1468,9 @@ for (const statement of [
     ,"CREATE TABLE IF NOT EXISTS gallery_albums (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, nome TEXT NOT NULL, descricao TEXT, capa_media_id INTEGER, password_hash TEXT, data_criacao TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
     ,"ALTER TABLE gallery_albums ADD COLUMN password_hash TEXT"
     ,"CREATE TABLE IF NOT EXISTS gallery_media (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, nome_original TEXT NOT NULL, nome_armazenado TEXT NOT NULL, tipo_arquivo TEXT NOT NULL, extensao TEXT NOT NULL, tamanho_original INTEGER NOT NULL DEFAULT 0, tamanho_final INTEGER NOT NULL DEFAULT 0, caminho_arquivo TEXT NOT NULL, caminho_thumbnail TEXT, data_upload TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, data_original TEXT, album_id INTEGER REFERENCES gallery_albums(id) ON DELETE SET NULL, categoria TEXT, tags TEXT, descricao TEXT, favorito INTEGER NOT NULL DEFAULT 0, manter_original INTEGER NOT NULL DEFAULT 1, compressed INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
+    ,"CREATE TABLE IF NOT EXISTS collectible_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, description TEXT, color TEXT NOT NULL DEFAULT '#2563eb', icon TEXT NOT NULL DEFAULT '👕', is_default INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id, name))"
+    ,"CREATE TABLE IF NOT EXISTS collectible_shirts (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, category_id INTEGER REFERENCES collectible_categories(id) ON DELETE SET NULL, team_name TEXT NOT NULL, season TEXT NOT NULL, shirt_type TEXT NOT NULL, image_url TEXT, player_name TEXT, shirt_number TEXT, brand TEXT, size TEXT, status TEXT NOT NULL DEFAULT 'Tenho', notes TEXT, storage_location TEXT, purchase_date TEXT, estimated_value REAL, favorite INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
+    ,"CREATE TABLE IF NOT EXISTS collectible_goals (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, title TEXT NOT NULL, description TEXT, target_quantity REAL, current_progress REAL NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'em andamento', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
     ,"CREATE TABLE IF NOT EXISTS google_accounts (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, nome_conta TEXT, email TEXT NOT NULL, senha_criptografada TEXT NOT NULL, data_criacao TEXT, status TEXT NOT NULL DEFAULT 'Ativa', uso_principal TEXT NOT NULL DEFAULT 'Outros', email_recuperacao TEXT, telefone_recuperacao TEXT, dois_fatores_ativo INTEGER NOT NULL DEFAULT 0, tipo_dois_fatores TEXT, ultima_troca_senha TEXT, ultima_revisao TEXT, codigos_backup_criptografados TEXT, observacoes_recuperacao TEXT, observacoes TEXT, servicos_usados TEXT, senha_repetida INTEGER NOT NULL DEFAULT 0, nivel_risco TEXT NOT NULL DEFAULT 'Medio', criado_em TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, atualizado_em TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, arquivado INTEGER NOT NULL DEFAULT 0, UNIQUE(user_id, email))"
     ,"ALTER TABLE google_accounts ADD COLUMN observacoes_recuperacao TEXT"
     ,"ALTER TABLE google_accounts ADD COLUMN senha_repetida INTEGER NOT NULL DEFAULT 0"
@@ -6655,6 +6702,211 @@ async function wishlistRefreshProductPrice(userId, product) {
   }
   run("UPDATE produtos_wishlist SET nome = COALESCE(NULLIF(?, ''), nome), imagem_url = COALESCE(NULLIF(?, ''), imagem_url), preco_atual = CASE WHEN ? > 0 THEN ? ELSE preco_atual END, loja = COALESCE(NULLIF(?, ''), loja), ultima_atualizacao_preco = ?, atualizado_em = ? WHERE id = ? AND user_id = ?", [metadata.nome || "", metadata.imagem_url || "", newPrice, newPrice, metadata.loja || "", now, now, product.id, userId]);
   return wishlistProductPublic(get("SELECT * FROM produtos_wishlist WHERE id = ? AND user_id = ?", [product.id, userId]));
+}
+
+const collectibleDefaultCategories = [
+  { name: "Seleções", description: "Camisas de seleções nacionais", color: "#22c55e", icon: "🌎" },
+  { name: "Times Brasileiros", description: "Clubes do Brasil", color: "#2563eb", icon: "🇧🇷" },
+  { name: "Times Europeus", description: "Clubes da Europa", color: "#7c3aed", icon: "🏆" }
+];
+const collectibleShirtTypes = ["Titular", "Reserva", "Terceira camisa", "Goleiro", "Treino", "Edição especial", "Retrô", "Outra"];
+const collectibleShirtStatuses = ["Tenho", "Quero comprar", "Vendida/trocada", "Emprestada", "Rara", "Favorita"];
+const collectibleGoalStatuses = ["em andamento", "concluída", "pausada"];
+const collectibleCategoryFields = ["user_id", "name", "description", "color", "icon", "is_default"];
+const collectibleShirtFields = ["user_id", "category_id", "team_name", "season", "shirt_type", "image_url", "player_name", "shirt_number", "brand", "size", "status", "notes", "storage_location", "purchase_date", "estimated_value", "favorite"];
+const collectibleGoalFields = ["user_id", "title", "description", "target_quantity", "current_progress", "status"];
+
+function ensureCollectibleDefaultCategories(userId) {
+  for (const category of collectibleDefaultCategories) {
+    run(`INSERT OR IGNORE INTO collectible_categories
+      (user_id, name, description, color, icon, is_default, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, 1, ?, ?)`, [
+      userId,
+      category.name,
+      category.description,
+      category.color,
+      category.icon,
+      currentDateTime(),
+      currentDateTime()
+    ]);
+  }
+}
+
+function collectibleValidUrl(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  try {
+    const parsed = new URL(text);
+    if (!["http:", "https:"].includes(parsed.protocol)) return "";
+    return parsed.href;
+  } catch {
+    return "";
+  }
+}
+
+function collectibleCategoryPayload(payload, userId, existing = {}) {
+  const name = wishlistCleanText(payload.name || payload.nome || existing.name, 120);
+  if (!name) throw new Error("Informe o nome da categoria.");
+  return {
+    user_id: userId,
+    name,
+    description: wishlistCleanText(payload.description || payload.descricao || existing.description, 400),
+    color: wishlistCleanText(payload.color || payload.cor || existing.color || "#2563eb", 32),
+    icon: wishlistCleanText(payload.icon || payload.icone || existing.icon || "👕", 24),
+    is_default: Number(payload.is_default ?? existing.is_default ?? 0) ? 1 : 0
+  };
+}
+
+function collectibleShirtPayload(payload, userId, existing = {}) {
+  const teamName = wishlistCleanText(payload.team_name || payload.name || payload.nome || existing.team_name, 180);
+  const season = wishlistCleanText(payload.season || payload.temporada || payload.year || existing.season, 40);
+  const shirtType = wishlistCleanText(payload.shirt_type || payload.tipo || existing.shirt_type, 80);
+  if (!teamName) throw new Error("Informe o nome do time ou seleção.");
+  if (!season) throw new Error("Informe a temporada/ano.");
+  if (!shirtType) throw new Error("Informe o tipo da camisa.");
+  const categoryId = Number(payload.category_id || payload.categoria_id || existing.category_id || 0);
+  if (!categoryId) throw new Error("Selecione uma categoria.");
+  const category = get("SELECT id FROM collectible_categories WHERE id = ? AND user_id = ?", [categoryId, userId]);
+  if (!category) throw new Error("Categoria nao encontrada.");
+  const status = wishlistCleanText(payload.status || existing.status || "Tenho", 80);
+  const estimatedRaw = payload.estimated_value ?? payload.valor ?? payload.preco ?? existing.estimated_value ?? null;
+  const estimatedValue = estimatedRaw === "" || estimatedRaw === null || estimatedRaw === undefined ? null : wishlistPrice(estimatedRaw);
+  const imageCandidate = payload.image_url || payload.imagem_url || existing.image_url || "";
+  return {
+    user_id: userId,
+    category_id: categoryId,
+    team_name: teamName,
+    season,
+    shirt_type: collectibleShirtTypes.includes(shirtType) ? shirtType : shirtType,
+    image_url: collectibleValidUrl(imageCandidate),
+    player_name: wishlistCleanText(payload.player_name || payload.jogador || existing.player_name, 120),
+    shirt_number: wishlistCleanText(payload.shirt_number || payload.numero || existing.shirt_number, 20),
+    brand: wishlistCleanText(payload.brand || payload.marca || existing.brand, 80),
+    size: wishlistCleanText(payload.size || payload.tamanho || existing.size, 40),
+    status: collectibleShirtStatuses.includes(status) ? status : "Tenho",
+    notes: wishlistCleanText(payload.notes || payload.observacoes || existing.notes, 1400),
+    storage_location: wishlistCleanText(payload.storage_location || payload.local_guardado || existing.storage_location, 180),
+    purchase_date: String(payload.purchase_date || payload.data_compra || existing.purchase_date || "").slice(0, 10),
+    estimated_value: estimatedValue,
+    favorite: Number(payload.favorite ?? payload.favorito ?? existing.favorite ?? 0) ? 1 : 0
+  };
+}
+
+function collectibleGoalPayload(payload, userId, existing = {}) {
+  const title = wishlistCleanText(payload.title || payload.titulo || existing.title, 180);
+  if (!title) throw new Error("Informe o titulo da meta.");
+  const status = wishlistCleanText(payload.status || existing.status || "em andamento", 60).toLowerCase();
+  const targetRaw = payload.target_quantity ?? payload.quantidade_alvo ?? existing.target_quantity ?? null;
+  return {
+    user_id: userId,
+    title,
+    description: wishlistCleanText(payload.description || payload.descricao || existing.description, 900),
+    target_quantity: targetRaw === "" || targetRaw === null || targetRaw === undefined ? null : Math.max(0, Number(targetRaw || 0)),
+    current_progress: Math.max(0, Number(payload.current_progress ?? payload.progresso_atual ?? existing.current_progress ?? 0)),
+    status: collectibleGoalStatuses.includes(status) ? status : "em andamento"
+  };
+}
+
+function collectibleCategoryRows(userId) {
+  ensureCollectibleDefaultCategories(userId);
+  return all(`SELECT c.*, COUNT(s.id) AS shirt_count
+    FROM collectible_categories c
+    LEFT JOIN collectible_shirts s ON s.category_id = c.id AND s.user_id = c.user_id
+    WHERE c.user_id = ?
+    GROUP BY c.id
+    ORDER BY c.is_default DESC, c.name COLLATE NOCASE`, [userId]);
+}
+
+function collectibleShirtPublic(row) {
+  return {
+    ...row,
+    favorite: Number(row.favorite || 0),
+    estimated_value: row.estimated_value === null || row.estimated_value === undefined ? null : Number(row.estimated_value || 0)
+  };
+}
+
+function collectibleShirtRows(userId, query = new URLSearchParams()) {
+  ensureCollectibleDefaultCategories(userId);
+  const where = ["s.user_id = ?"];
+  const params = [userId];
+  if (query.get("category")) {
+    where.push("s.category_id = ?");
+    params.push(Number(query.get("category")));
+  }
+  for (const [key, column] of [["season", "season"], ["type", "shirt_type"], ["status", "status"]]) {
+    if (query.get(key)) {
+      where.push(`s.${column} = ?`);
+      params.push(query.get(key));
+    }
+  }
+  if (query.get("favorite")) {
+    where.push("s.favorite = ?");
+    params.push(query.get("favorite") === "sim" || query.get("favorite") === "1" ? 1 : 0);
+  }
+  if (query.get("search")) {
+    const like = `%${query.get("search")}%`;
+    where.push("(s.team_name LIKE ? OR s.player_name LIKE ? OR s.brand LIKE ? OR s.notes LIKE ? OR c.name LIKE ?)");
+    params.push(like, like, like, like, like);
+  }
+  const orderMap = {
+    oldest: "datetime(s.created_at) ASC, s.id ASC",
+    name: "s.team_name COLLATE NOCASE ASC, s.season DESC",
+    category: "c.name COLLATE NOCASE ASC, s.team_name COLLATE NOCASE ASC",
+    season: "s.season DESC, s.team_name COLLATE NOCASE ASC",
+    recent: "datetime(s.created_at) DESC, s.id DESC"
+  };
+  const order = orderMap[query.get("sort")] || orderMap.recent;
+  return all(`SELECT s.*, c.name AS category_name, c.color AS category_color, c.icon AS category_icon
+    FROM collectible_shirts s
+    LEFT JOIN collectible_categories c ON c.id = s.category_id
+    WHERE ${where.join(" AND ")}
+    ORDER BY ${order}`, params).map(collectibleShirtPublic);
+}
+
+function collectibleGoalRows(userId) {
+  return all("SELECT * FROM collectible_goals WHERE user_id = ? ORDER BY CASE status WHEN 'em andamento' THEN 0 WHEN 'pausada' THEN 1 ELSE 2 END, datetime(updated_at) DESC, id DESC", [userId]);
+}
+
+function collectibleOverview(userId, query) {
+  ensureCollectibleDefaultCategories(userId);
+  const categories = collectibleCategoryRows(userId);
+  const shirts = collectibleShirtRows(userId, query);
+  const allShirts = all(`SELECT s.*, c.name AS category_name, c.color AS category_color, c.icon AS category_icon
+    FROM collectible_shirts s
+    LEFT JOIN collectible_categories c ON c.id = s.category_id
+    WHERE s.user_id = ?
+    ORDER BY datetime(s.created_at) DESC, s.id DESC`, [userId]).map(collectibleShirtPublic);
+  const goals = collectibleGoalRows(userId);
+  const countBy = (items, key) => items.reduce((acc, item) => {
+    const label = item[key] || "Sem info";
+    acc[label] = (acc[label] || 0) + 1;
+    return acc;
+  }, {});
+  return {
+    categories,
+    shirts,
+    goals,
+    options: {
+      types: collectibleShirtTypes,
+      statuses: collectibleShirtStatuses,
+      goalStatuses: collectibleGoalStatuses,
+      seasons: [...new Set(allShirts.map((item) => item.season).filter(Boolean))].sort().reverse()
+    },
+    summary: {
+      total_shirts: allShirts.length,
+      total_categories: categories.length,
+      selections: allShirts.filter((item) => item.category_name === "Seleções").length,
+      brazilian_teams: allShirts.filter((item) => item.category_name === "Times Brasileiros").length,
+      european_teams: allShirts.filter((item) => item.category_name === "Times Europeus").length,
+      favorites: allShirts.filter((item) => Number(item.favorite || 0)).length,
+      estimated_total: allShirts.reduce((sum, item) => sum + Number(item.estimated_value || 0), 0),
+      by_category: countBy(allShirts, "category_name"),
+      by_status: countBy(allShirts, "status"),
+      latest: allShirts.slice(0, 5),
+      favorite_shirts: allShirts.filter((item) => Number(item.favorite || 0)).slice(0, 5),
+      active_goals: goals.filter((goal) => goal.status === "em andamento").slice(0, 5)
+    }
+  };
 }
 
 function galleryDatedFolder(kind, dateText = todayDate()) {
@@ -12285,6 +12537,111 @@ async function api(req, res, pathname, query) {
       if (action === "adjustments" && req.method === "POST") return json(res, 201, createSubscriptionAdjustment(user.id, id, await body(req)));
     } catch (error) {
       return json(res, Number(error.statusCode || 400), { error: error.message });
+    }
+  }
+
+  if (pathname === "/api/collectibles" && req.method === "GET") {
+    return json(res, 200, collectibleOverview(user.id, query));
+  }
+  if (pathname === "/api/collectibles/categories" && req.method === "GET") {
+    return json(res, 200, collectibleCategoryRows(user.id));
+  }
+  if (pathname === "/api/collectibles/categories" && req.method === "POST") {
+    try {
+      const payload = collectibleCategoryPayload(await body(req), user.id);
+      const result = insertByFields("collectible_categories", collectibleCategoryFields, payload);
+      recordTimeline("Categoria de colecionaveis criada", payload.name, "collectibles");
+      return json(res, 201, get("SELECT * FROM collectible_categories WHERE id = ? AND user_id = ?", [result.lastInsertRowid, user.id]));
+    } catch (error) {
+      const message = String(error.message || "");
+      return json(res, message.includes("UNIQUE") ? 409 : 400, { error: message.includes("UNIQUE") ? "Essa categoria ja existe." : message });
+    }
+  }
+  const collectibleCategoryMatch = pathname.match(/^\/api\/collectibles\/categories\/(\d+)$/);
+  if (collectibleCategoryMatch) {
+    const id = Number(collectibleCategoryMatch[1]);
+    const category = get("SELECT * FROM collectible_categories WHERE id = ? AND user_id = ?", [id, user.id]);
+    if (!category) return json(res, 404, { error: "Categoria nao encontrada." });
+    if (req.method === "PUT") {
+      try {
+        const payload = collectibleCategoryPayload(await body(req), user.id, category);
+        run("UPDATE collectible_categories SET name = ?, description = ?, color = ?, icon = ?, updated_at = ? WHERE id = ? AND user_id = ?", [payload.name, payload.description, payload.color, payload.icon, currentDateTime(), id, user.id]);
+        return json(res, 200, get("SELECT * FROM collectible_categories WHERE id = ? AND user_id = ?", [id, user.id]));
+      } catch (error) {
+        const message = String(error.message || "");
+        return json(res, message.includes("UNIQUE") ? 409 : 400, { error: message.includes("UNIQUE") ? "Essa categoria ja existe." : message });
+      }
+    }
+    if (req.method === "DELETE") {
+      const count = get("SELECT COUNT(*) AS total FROM collectible_shirts WHERE user_id = ? AND category_id = ?", [user.id, id])?.total || 0;
+      const force = query.get("force") === "1";
+      if (count && !force) return json(res, 409, { error: "Categoria em uso. Confirme a exclusao para deixar as camisas sem categoria." });
+      run("UPDATE collectible_shirts SET category_id = NULL, updated_at = ? WHERE user_id = ? AND category_id = ?", [currentDateTime(), user.id, id]);
+      run("DELETE FROM collectible_categories WHERE id = ? AND user_id = ?", [id, user.id]);
+      return json(res, 200, { ok: true });
+    }
+  }
+  if (pathname === "/api/collectibles/shirts" && req.method === "POST") {
+    try {
+      const payload = collectibleShirtPayload(await body(req), user.id);
+      const result = insertByFields("collectible_shirts", collectibleShirtFields, payload);
+      const created = collectibleShirtPublic(get(`SELECT s.*, c.name AS category_name, c.color AS category_color, c.icon AS category_icon FROM collectible_shirts s LEFT JOIN collectible_categories c ON c.id = s.category_id WHERE s.id = ? AND s.user_id = ?`, [result.lastInsertRowid, user.id]));
+      recordTimeline("Camisa adicionada a colecao", `${created.team_name} ${created.season}`.trim(), "collectibles");
+      return json(res, 201, created);
+    } catch (error) {
+      return json(res, 400, { error: error.message || "Nao foi possivel cadastrar a camisa." });
+    }
+  }
+  const collectibleShirtMatch = pathname.match(/^\/api\/collectibles\/shirts\/(\d+)$/);
+  if (collectibleShirtMatch) {
+    const id = Number(collectibleShirtMatch[1]);
+    const shirt = get("SELECT * FROM collectible_shirts WHERE id = ? AND user_id = ?", [id, user.id]);
+    if (!shirt) return json(res, 404, { error: "Camisa nao encontrada." });
+    if (req.method === "GET") {
+      return json(res, 200, collectibleShirtPublic(get(`SELECT s.*, c.name AS category_name, c.color AS category_color, c.icon AS category_icon FROM collectible_shirts s LEFT JOIN collectible_categories c ON c.id = s.category_id WHERE s.id = ? AND s.user_id = ?`, [id, user.id])));
+    }
+    if (req.method === "PUT") {
+      try {
+        const payload = collectibleShirtPayload(await body(req), user.id, shirt);
+        updateByFields("collectible_shirts", collectibleShirtFields, id, payload);
+        return json(res, 200, collectibleShirtPublic(get(`SELECT s.*, c.name AS category_name, c.color AS category_color, c.icon AS category_icon FROM collectible_shirts s LEFT JOIN collectible_categories c ON c.id = s.category_id WHERE s.id = ? AND s.user_id = ?`, [id, user.id])));
+      } catch (error) {
+        return json(res, 400, { error: error.message || "Nao foi possivel atualizar a camisa." });
+      }
+    }
+    if (req.method === "DELETE") {
+      run("DELETE FROM collectible_shirts WHERE id = ? AND user_id = ?", [id, user.id]);
+      recordTimeline("Camisa removida da colecao", `${shirt.team_name} ${shirt.season}`.trim(), "collectibles");
+      return json(res, 200, { ok: true });
+    }
+  }
+  if (pathname === "/api/collectibles/goals" && req.method === "POST") {
+    try {
+      const payload = collectibleGoalPayload(await body(req), user.id);
+      const result = insertByFields("collectible_goals", collectibleGoalFields, payload);
+      recordTimeline("Meta de colecao criada", payload.title, "collectibles");
+      return json(res, 201, get("SELECT * FROM collectible_goals WHERE id = ? AND user_id = ?", [result.lastInsertRowid, user.id]));
+    } catch (error) {
+      return json(res, 400, { error: error.message || "Nao foi possivel criar a meta." });
+    }
+  }
+  const collectibleGoalMatch = pathname.match(/^\/api\/collectibles\/goals\/(\d+)$/);
+  if (collectibleGoalMatch) {
+    const id = Number(collectibleGoalMatch[1]);
+    const goal = get("SELECT * FROM collectible_goals WHERE id = ? AND user_id = ?", [id, user.id]);
+    if (!goal) return json(res, 404, { error: "Meta nao encontrada." });
+    if (req.method === "PUT") {
+      try {
+        const payload = collectibleGoalPayload(await body(req), user.id, goal);
+        updateByFields("collectible_goals", collectibleGoalFields, id, payload);
+        return json(res, 200, get("SELECT * FROM collectible_goals WHERE id = ? AND user_id = ?", [id, user.id]));
+      } catch (error) {
+        return json(res, 400, { error: error.message || "Nao foi possivel atualizar a meta." });
+      }
+    }
+    if (req.method === "DELETE") {
+      run("DELETE FROM collectible_goals WHERE id = ? AND user_id = ?", [id, user.id]);
+      return json(res, 200, { ok: true });
     }
   }
 
